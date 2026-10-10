@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="dentist.title">Oraviu · Dentist review</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="site-brand" href="index.html">Oraviu</a>
+      <span class="site-role" data-i18n="role.dentist">Dentist</span>
+      <div class="segmented" role="group" aria-label="Language" data-i18n-aria-label="lang.label" data-lang-switch></div>
+    </div>
+  </header>
+  <p class="demo-banner" data-i18n="demo.banner">Demo version: analysis results are simulated and are not based on your photos. Not for medical use.</p>
+
+  <main class="site-main">
+    <div class="container">
+      <p id="storage-error" class="form-message form-message--error" role="alert" data-i18n="error.storage" hidden>This browser is blocking local storage, so cases cannot be saved or loaded.</p>
+
+      <section id="view-cases" aria-labelledby="cases-heading">
+        <header class="page-intro">
+          <h1 id="cases-heading" data-i18n="dentist.cases.heading">Case review</h1>
+          <p data-i18n="dentist.cases.intro">Reports submitted from the patient page in this browser appear here.</p>
+        </header>
+        <div class="toolbar">
+          <div class="segmented" role="group" aria-label="Filter by status" data-i18n-aria-label="dentist.filter.label">
+            <button class="segmented__button" type="button" data-filter="all" aria-pressed="true">All</button>
+            <button class="segmented__button" type="button" data-filter="pending" aria-pressed="false">Pending</button>
+            <button class="segmented__button" type="button" data-filter="reviewed" aria-pressed="false">Reviewed</button>
+          </div>
+          <label class="select-field">
+            <span data-i18n="dentist.sort.label">Sort by</span>
+            <select id="sort-select">
+              <option value="priority" data-i18n="dentist.sort.priority">Priority</option>
+              <option value="newest" data-i18n="dentist.sort.newest">Newest first</option>
+              <option value="oldest" data-i18n="dentist.sort.oldest">Oldest first</option>
+            </select>
+          </label>
+        </div>
+        <table id="case-table" class="case-table" hidden>
+          <thead>
+            <tr>
+              <th scope="col" data-i18n="dentist.col.case">Case</th>
+              <th scope="col" data-i18n="dentist.col.submitted">Submitted</th>
+              <th scope="col" data-i18n="dentist.col.photos">Photos</th>
+              <th scope="col" data-i18n="dentist.col.priority">AI priority</th>
+              <th scope="col" data-i18n="dentist.col.status">Status</th>
+              <th scope="col"><span class="visually-hidden" data-i18n="dentist.col.action">Action</span></th>
+            </tr>
+          </thead>
+          <tbody id="case-rows"></tbody>
+        </table>
+        <p id="case-empty" class="empty-state" hidden></p>
+      </section>
+
+      <section id="view-case" hidden>
+        <a class="back-link" href="#cases" data-i18n="dentist.case.back">All cases</a>
+        <header id="case-header" class="report-header"></header>
+        <p id="case-missing" class="empty-state" hidden></p>
+        <div id="case-layout" class="case-layout" hidden>
+          <div id="case-detail" class="case-detail"></div>
+          <form id="review-form" class="card review-form" novalidate>
+            <h2 data-i18n="dentist.form.heading">Your review</h2>
+            <div class="field">
+              <label for="review-comment" data-i18n="dentist.form.comment">Comment</label>
+              <span id="review-comment-hint" class="field__hint" data-i18n="dentist.form.comment.hint">What you see in the photos.</span>
+              <textarea id="review-comment" aria-describedby="review-comment-hint"></textarea>
+            </div>
+            <div class="field">
+              <label for="review-recommendation" data-i18n="dentist.form.recommendation">Recommendation for the patient</label>
+              <span id="review-recommendation-hint" class="field__hint" data-i18n="dentist.form.recommendation.hint">What the patient should do next.</span>
+              <textarea id="review-recommendation" aria-describedby="review-recommendation-hint"></textarea>
+            </div>
+            <p id="review-message" class="form-message" role="status" hidden></p>
+            <button id="review-submit" class="button" type="submit">Submit review</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <p data-i18n="footer.note">Oraviu demo. Cases are stored only in this browser.</p>
+      <button id="clear-data" class="site-footer__clear" type="button" data-i18n="footer.clear">Clear demo data</button>
+    </div>
+  </footer>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/dentist.js"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="patient.title">Oraviu · Patient</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="site-brand" href="index.html">Oraviu</a>
+      <span class="site-role" data-i18n="role.patient">Patient</span>
+      <div class="segmented" role="group" aria-label="Language" data-i18n-aria-label="lang.label" data-lang-switch></div>
+    </div>
+  </header>
+  <p class="demo-banner" data-i18n="demo.banner">Demo version: analysis results are simulated and are not based on your photos. Not for medical use.</p>
+
+  <main class="site-main">
+    <div class="container">
+      <p id="storage-error" class="form-message form-message--error" role="alert" data-i18n="error.storage" hidden>This browser is blocking local storage, so cases cannot be saved or loaded.</p>
+
+      <nav class="tabs" aria-label="Patient sections" data-i18n-aria-label="patient.tabs.label">
+        <a class="tabs__link" href="#new" data-tab="new" data-i18n="patient.tab.new">New analysis</a>
+        <a class="tabs__link" href="#reports" data-tab="reports" data-i18n="patient.tab.reports">My reports</a>
+      </nav>
+
+      <section id="view-new" aria-labelledby="new-heading">
+        <header class="page-intro">
+          <h1 id="new-heading" data-i18n="patient.new.heading">Upload your oral photos</h1>
+          <p data-i18n="patient.new.intro">Add up to 5 photos of your teeth and gums. You get a short summary with next steps, and a dentist reviews it afterwards.</p>
+        </header>
+        <div class="upload">
+          <div id="dropzone" class="dropzone">
+            <p class="dropzone__title" data-i18n="patient.drop.title">Drag photos here</p>
+            <p class="dropzone__hint" data-i18n="patient.drop.hint">JPG, PNG or WebP. Up to 5 photos.</p>
+            <label class="button button--secondary">
+              <span data-i18n="patient.drop.button">Choose photos</span>
+              <input id="photo-input" class="visually-hidden" type="file" accept="image/*" multiple>
+            </label>
+          </div>
+          <div id="upload-messages" class="form-messages" role="alert"></div>
+          <ul id="photo-list" class="photo-grid"></ul>
+          <div class="upload__actions">
+            <p id="photo-count" class="upload__count" aria-live="polite"></p>
+            <button id="analyze-button" class="button" type="button" data-i18n="patient.analyze" disabled>Analyze photos</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-analyzing" class="analyzing" aria-labelledby="analyzing-heading" aria-live="polite" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <h1 id="analyzing-heading" data-i18n="patient.analyzing.heading">Analyzing your photos</h1>
+        <ol class="analyzing__steps">
+          <li class="analyzing__step" data-i18n="patient.analyzing.step1">Checking the photos</li>
+          <li class="analyzing__step" data-i18n="patient.analyzing.step2">Looking at teeth and gums</li>
+          <li class="analyzing__step" data-i18n="patient.analyzing.step3">Writing your report</li>
+        </ol>
+        <p class="analyzing__note" data-i18n="patient.analyzing.note">Demo mode: this analysis is simulated.</p>
+      </section>
+
+      <section id="view-reports" aria-labelledby="reports-heading" hidden>
+        <header class="page-intro">
+          <h1 id="reports-heading" data-i18n="patient.reports.heading">My reports</h1>
+          <p data-i18n="patient.reports.intro">Reports created in this browser.</p>
+        </header>
+        <ul id="report-list" class="case-list"></ul>
+        <div id="report-empty" class="empty-state" hidden>
+          <p data-i18n="patient.reports.empty">No reports yet. Upload photos to create your first one.</p>
+          <a class="button" href="#new" data-i18n="patient.report.new">Start a new analysis</a>
+        </div>
+      </section>
+
+      <section id="view-report" hidden>
+        <div id="report-body" class="report"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <p data-i18n="footer.note">Oraviu demo. Cases are stored only in this browser.</p>
+      <button id="clear-data" class="site-footer__clear" type="button" data-i18n="footer.clear">Clear demo data</button>
+    </div>
+  </footer>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/analysis.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/patient.js"></script>
+</body>
+</html>

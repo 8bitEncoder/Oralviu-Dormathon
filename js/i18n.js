@@ -1,0 +1,520 @@
+window.Oraviu = window.Oraviu || {};
+
+(() => {
+  const STORAGE_KEY = "oraviu:lang";
+
+  const LANGUAGES = [
+    { code: "en", label: "EN", name: "English", tag: "en", locale: "en-MY" },
+    { code: "zh", label: "中文", name: "中文", tag: "zh-Hans", locale: "zh-CN" },
+    { code: "ms", label: "BM", name: "Bahasa Melayu", tag: "ms", locale: "ms-MY" }
+  ];
+
+  const messages = {
+    en: {
+      "lang.label": "Language",
+      "role.patient": "Patient",
+      "role.dentist": "Dentist",
+      "demo.banner": "Demo version: analysis results are simulated and are not based on your photos. Not for medical use.",
+      "footer.note": "Oraviu demo. Cases are stored only in this browser.",
+      "footer.clear": "Clear demo data",
+      "footer.clearConfirm": "Delete all cases stored in this browser? This cannot be undone.",
+      "error.storage": "This browser is blocking local storage, so cases cannot be saved or loaded.",
+
+      "index.title": "Oraviu",
+      "index.heading": "Oral photo analysis with dentist review.",
+      "index.summary": "Upload photos of your teeth and gums, receive a short summary with next steps, and have a dentist review the result.",
+      "index.patient.text": "Upload up to 5 photos and read your report.",
+      "index.patient.cta": "Open patient page",
+      "index.dentist.text": "Review submitted cases and write your comments.",
+      "index.dentist.cta": "Open dentist page",
+
+      "status.pending": "Awaiting dentist review",
+      "status.reviewed": "Reviewed by dentist",
+      "urgency.routine": "Routine care",
+      "urgency.monitor": "Monitor at home",
+      "urgency.dentist": "See a dentist",
+      "priority.routine": "Low",
+      "priority.monitor": "Medium",
+      "priority.dentist": "High",
+      "photos.one": "{n} photo",
+      "photos.other": "{n} photos",
+      "case.submitted": "Submitted {date}",
+      "photo.alt": "Photo {n} of {total}",
+      "photo.open": "Enlarge photo {n}",
+      "lightbox.close": "Close",
+      "lightbox.previous": "Previous photo",
+      "lightbox.next": "Next photo",
+
+      "report.summary": "AI observation summary",
+      "report.simulated": "Simulated",
+      "report.recommendations": "Recommendations",
+      "report.nextStep": "Next step",
+      "report.review": "Dentist's review",
+      "report.review.comment": "Comment",
+      "report.review.recommendation": "Recommendation",
+      "report.review.date": "Reviewed {date}",
+      "report.review.awaiting": "A dentist has not reviewed this report yet. Check back later.",
+      "report.disclaimer": "This report is for general awareness only. It is not a diagnosis and does not replace an examination by a dental professional.",
+
+      "patient.title": "Oraviu · Patient",
+      "patient.tabs.label": "Patient sections",
+      "patient.tab.new": "New analysis",
+      "patient.tab.reports": "My reports",
+      "patient.new.heading": "Upload your oral photos",
+      "patient.new.intro": "Add up to 5 photos of your teeth and gums. You get a short summary with next steps, and a dentist reviews it afterwards.",
+      "patient.drop.title": "Drag photos here",
+      "patient.drop.hint": "JPG, PNG or WebP. Up to 5 photos.",
+      "patient.drop.button": "Choose photos",
+      "patient.photos.count": "{n} of {max} photos added",
+      "patient.photos.remove": "Remove photo {n}",
+      "patient.analyze": "Analyze photos",
+      "patient.error.max": "Only {max} photos fit in one report, so the extra ones were left out.",
+      "patient.error.type": "{name} is not an image, so it was left out.",
+      "patient.error.read": "{name} could not be opened, so it was left out. Try a JPG or PNG.",
+      "patient.error.save": "The report could not be saved in this browser. Your photos are still here, so you can try again.",
+      "patient.analyzing.heading": "Analyzing your photos",
+      "patient.analyzing.step1": "Checking the photos",
+      "patient.analyzing.step2": "Looking at teeth and gums",
+      "patient.analyzing.step3": "Writing your report",
+      "patient.analyzing.note": "Demo mode: this analysis is simulated.",
+      "patient.reports.heading": "My reports",
+      "patient.reports.intro": "Reports created in this browser.",
+      "patient.reports.empty": "No reports yet. Upload photos to create your first one.",
+      "patient.reports.view": "View report",
+      "patient.report.heading": "Report {id}",
+      "patient.report.new": "Start a new analysis",
+      "patient.report.missing": "Report {id} was not found in this browser.",
+
+      "dentist.title": "Oraviu · Dentist review",
+      "dentist.cases.heading": "Case review",
+      "dentist.cases.intro": "Reports submitted from the patient page in this browser appear here.",
+      "dentist.cases.empty": "No cases yet. They appear here after a patient submits photos.",
+      "dentist.cases.emptyFiltered": "No cases with this status.",
+      "dentist.filter.label": "Filter by status",
+      "dentist.filter.all": "All ({n})",
+      "dentist.filter.pending": "Pending ({n})",
+      "dentist.filter.reviewed": "Reviewed ({n})",
+      "dentist.sort.label": "Sort by",
+      "dentist.sort.priority": "Priority",
+      "dentist.sort.newest": "Newest first",
+      "dentist.sort.oldest": "Oldest first",
+      "dentist.col.case": "Case",
+      "dentist.col.submitted": "Submitted",
+      "dentist.col.photos": "Photos",
+      "dentist.col.priority": "AI priority",
+      "dentist.col.status": "Status",
+      "dentist.col.action": "Action",
+      "dentist.action.review": "Review",
+      "dentist.action.view": "View",
+      "dentist.case.heading": "Case {id}",
+      "dentist.case.back": "All cases",
+      "dentist.case.photos": "Patient photos",
+      "dentist.case.priority": "AI priority: {level}",
+      "dentist.case.missing": "Case {id} was not found in this browser.",
+      "dentist.form.heading": "Your review",
+      "dentist.form.comment": "Comment",
+      "dentist.form.comment.hint": "What you see in the photos.",
+      "dentist.form.recommendation": "Recommendation for the patient",
+      "dentist.form.recommendation.hint": "What the patient should do next.",
+      "dentist.form.submit": "Submit review",
+      "dentist.form.update": "Update review",
+      "dentist.form.required": "Write a comment or a recommendation before submitting.",
+      "dentist.form.saved": "Review saved. The patient can now read it in their report.",
+      "dentist.form.error": "The review could not be saved. Try again.",
+
+      "profile.clear.summary": "No obvious areas of concern were noted in the photos. Teeth and gums look generally even in colour.",
+      "profile.clear.rec1": "Keep brushing twice a day with fluoride toothpaste.",
+      "profile.clear.rec2": "Clean between your teeth once a day with floss or an interdental brush.",
+      "profile.clear.rec3": "Take new photos in about a month to keep track of changes.",
+      "profile.clear.next": "Continue your usual routine and keep your regular dental check-ups.",
+      "profile.stain.summary": "Some surface discolouration may be present on the front teeth. This is often linked to coffee, tea or other strongly coloured food and drinks.",
+      "profile.stain.rec1": "Rinse with water after coffee, tea or coloured drinks.",
+      "profile.stain.rec2": "Brush twice a day with fluoride toothpaste.",
+      "profile.stain.rec3": "Ask about professional cleaning at your next visit.",
+      "profile.stain.next": "No urgent action needed. A routine cleaning visit can help.",
+      "profile.plaque.summary": "There may be some plaque build-up along the gumline, most visible around the back teeth.",
+      "profile.plaque.rec1": "Brush gently along the gumline for two minutes, twice a day.",
+      "profile.plaque.rec2": "Clean between your teeth once a day.",
+      "profile.plaque.rec3": "Take new photos in two weeks to see whether the area looks cleaner.",
+      "profile.plaque.next": "Monitor at home. Mention this at your next dental visit.",
+      "profile.gum.summary": "The gums may look redder or more swollen than usual in some areas, which can be a sign of irritation.",
+      "profile.gum.rec1": "Brush gently with a soft toothbrush, including along the gumline.",
+      "profile.gum.rec2": "Clean between your teeth once a day.",
+      "profile.gum.rec3": "Note any bleeding, pain or bad taste and tell your dentist.",
+      "profile.gum.next": "Book a dental check-up within the next few weeks.",
+      "profile.spot.summary": "A darker spot may be visible on one of the tooth surfaces. Spots like this can have several causes and are worth having checked.",
+      "profile.spot.rec1": "Keep the area clean with careful brushing and fluoride toothpaste.",
+      "profile.spot.rec2": "Limit sugary snacks and drinks between meals.",
+      "profile.spot.rec3": "Note any sensitivity to hot, cold or sweet food.",
+      "profile.spot.next": "See a dentist soon so the area can be examined properly."
+    },
+
+    zh: {
+      "lang.label": "语言",
+      "role.patient": "用户",
+      "role.dentist": "牙医",
+      "demo.banner": "演示版本：分析结果为模拟内容，并非根据您的照片得出，不可用于医疗用途。",
+      "footer.note": "Oraviu 演示版。案例只保存在此浏览器中。",
+      "footer.clear": "清除演示数据",
+      "footer.clearConfirm": "要删除此浏览器中保存的所有案例吗？此操作无法撤销。",
+      "error.storage": "此浏览器禁止了本地存储，无法保存或读取案例。",
+
+      "index.title": "Oraviu",
+      "index.heading": "口腔照片分析与牙医审核。",
+      "index.summary": "上传牙齿和牙龈的照片，获得简短摘要和下一步建议，并由牙医审核结果。",
+      "index.patient.text": "上传最多 5 张照片并查看报告。",
+      "index.patient.cta": "打开用户页面",
+      "index.dentist.text": "审核已提交的案例并填写评语。",
+      "index.dentist.cta": "打开牙医页面",
+
+      "status.pending": "等待牙医审核",
+      "status.reviewed": "牙医已审核",
+      "urgency.routine": "日常护理",
+      "urgency.monitor": "在家观察",
+      "urgency.dentist": "建议看牙医",
+      "priority.routine": "低",
+      "priority.monitor": "中",
+      "priority.dentist": "高",
+      "photos.other": "{n} 张照片",
+      "case.submitted": "提交于 {date}",
+      "photo.alt": "第 {n} 张照片，共 {total} 张",
+      "photo.open": "放大第 {n} 张照片",
+      "lightbox.close": "关闭",
+      "lightbox.previous": "上一张",
+      "lightbox.next": "下一张",
+
+      "report.summary": "AI 观察摘要",
+      "report.simulated": "模拟结果",
+      "report.recommendations": "建议",
+      "report.nextStep": "下一步",
+      "report.review": "牙医审核",
+      "report.review.comment": "评语",
+      "report.review.recommendation": "建议",
+      "report.review.date": "审核于 {date}",
+      "report.review.awaiting": "牙医尚未审核这份报告，请稍后再查看。",
+      "report.disclaimer": "本报告仅供一般参考，不构成诊断，也不能代替牙科专业人员的检查。",
+
+      "patient.title": "Oraviu · 用户",
+      "patient.tabs.label": "用户页面导航",
+      "patient.tab.new": "新分析",
+      "patient.tab.reports": "我的报告",
+      "patient.new.heading": "上传口腔照片",
+      "patient.new.intro": "最多可添加 5 张牙齿和牙龈的照片。您会得到一份简短摘要和下一步建议，之后由牙医审核。",
+      "patient.drop.title": "把照片拖到这里",
+      "patient.drop.hint": "支持 JPG、PNG 或 WebP，最多 5 张。",
+      "patient.drop.button": "选择照片",
+      "patient.photos.count": "已添加 {n} / {max} 张照片",
+      "patient.photos.remove": "移除第 {n} 张照片",
+      "patient.analyze": "分析照片",
+      "patient.error.max": "一份报告最多 {max} 张照片，多出的照片没有添加。",
+      "patient.error.type": "{name} 不是图片，没有添加。",
+      "patient.error.read": "无法打开 {name}，没有添加。请改用 JPG 或 PNG。",
+      "patient.error.save": "报告无法保存到此浏览器。照片仍在这里，您可以再试一次。",
+      "patient.analyzing.heading": "正在分析您的照片",
+      "patient.analyzing.step1": "检查照片",
+      "patient.analyzing.step2": "查看牙齿和牙龈",
+      "patient.analyzing.step3": "生成报告",
+      "patient.analyzing.note": "演示模式：此分析为模拟。",
+      "patient.reports.heading": "我的报告",
+      "patient.reports.intro": "在此浏览器中创建的报告。",
+      "patient.reports.empty": "还没有报告。上传照片来创建第一份报告。",
+      "patient.reports.view": "查看报告",
+      "patient.report.heading": "报告 {id}",
+      "patient.report.new": "开始新分析",
+      "patient.report.missing": "在此浏览器中找不到报告 {id}。",
+
+      "dentist.title": "Oraviu · 牙医审核",
+      "dentist.cases.heading": "案例审核",
+      "dentist.cases.intro": "在此浏览器的用户页面提交的报告会显示在这里。",
+      "dentist.cases.empty": "还没有案例。用户提交照片后会显示在这里。",
+      "dentist.cases.emptyFiltered": "没有这个状态的案例。",
+      "dentist.filter.label": "按状态筛选",
+      "dentist.filter.all": "全部（{n}）",
+      "dentist.filter.pending": "待审核（{n}）",
+      "dentist.filter.reviewed": "已审核（{n}）",
+      "dentist.sort.label": "排序",
+      "dentist.sort.priority": "紧急程度",
+      "dentist.sort.newest": "最新优先",
+      "dentist.sort.oldest": "最早优先",
+      "dentist.col.case": "案例",
+      "dentist.col.submitted": "提交时间",
+      "dentist.col.photos": "照片",
+      "dentist.col.priority": "AI 紧急程度",
+      "dentist.col.status": "状态",
+      "dentist.col.action": "操作",
+      "dentist.action.review": "审核",
+      "dentist.action.view": "查看",
+      "dentist.case.heading": "案例 {id}",
+      "dentist.case.back": "全部案例",
+      "dentist.case.photos": "用户照片",
+      "dentist.case.priority": "AI 紧急程度：{level}",
+      "dentist.case.missing": "在此浏览器中找不到案例 {id}。",
+      "dentist.form.heading": "您的审核",
+      "dentist.form.comment": "评语",
+      "dentist.form.comment.hint": "您在照片中看到的情况。",
+      "dentist.form.recommendation": "给用户的建议",
+      "dentist.form.recommendation.hint": "用户接下来应该怎么做。",
+      "dentist.form.submit": "提交审核",
+      "dentist.form.update": "更新审核",
+      "dentist.form.required": "提交前请填写评语或建议。",
+      "dentist.form.saved": "审核已保存，用户现在可以在报告中看到。",
+      "dentist.form.error": "审核无法保存，请再试一次。",
+
+      "profile.clear.summary": "照片中没有发现明显需要注意的地方，牙齿和牙龈的颜色大致均匀。",
+      "profile.clear.rec1": "继续每天用含氟牙膏刷牙两次。",
+      "profile.clear.rec2": "每天用牙线或牙间刷清洁牙缝一次。",
+      "profile.clear.rec3": "大约一个月后再拍照，方便留意变化。",
+      "profile.clear.next": "保持日常护理习惯，并按时做定期牙科检查。",
+      "profile.stain.summary": "前牙表面可能有一些着色，这通常与咖啡、茶或其他深色饮食有关。",
+      "profile.stain.rec1": "喝完咖啡、茶或有色饮料后用清水漱口。",
+      "profile.stain.rec2": "每天用含氟牙膏刷牙两次。",
+      "profile.stain.rec3": "下次看牙医时可以询问专业洗牙。",
+      "profile.stain.next": "不需要紧急处理，定期洗牙会有帮助。",
+      "profile.plaque.summary": "牙龈边缘可能有一些牙菌斑堆积，后牙附近较为明显。",
+      "profile.plaque.rec1": "每天两次，沿着牙龈边缘轻轻刷牙两分钟。",
+      "profile.plaque.rec2": "每天清洁牙缝一次。",
+      "profile.plaque.rec3": "两周后再拍照，看看该部位是否更干净。",
+      "profile.plaque.next": "先在家观察，下次看牙医时提一下这个情况。",
+      "profile.gum.summary": "部分牙龈看起来可能比平时更红或更肿，这可能是牙龈受刺激的迹象。",
+      "profile.gum.rec1": "用软毛牙刷轻轻刷牙，包括牙龈边缘。",
+      "profile.gum.rec2": "每天清洁牙缝一次。",
+      "profile.gum.rec3": "留意是否有出血、疼痛或异味，并告诉牙医。",
+      "profile.gum.next": "建议在未来几周内预约牙科检查。",
+      "profile.spot.summary": "其中一颗牙齿的表面可能有一个颜色较深的斑点。这类斑点可能有多种原因，值得请牙医检查。",
+      "profile.spot.rec1": "认真刷牙并使用含氟牙膏，保持该部位清洁。",
+      "profile.spot.rec2": "两餐之间少吃含糖的零食和饮料。",
+      "profile.spot.rec3": "留意吃冷、热或甜的食物时是否敏感。",
+      "profile.spot.next": "建议尽快看牙医，让该部位得到仔细检查。"
+    },
+
+    ms: {
+      "lang.label": "Bahasa",
+      "role.patient": "Pesakit",
+      "role.dentist": "Doktor gigi",
+      "demo.banner": "Versi demo: keputusan analisis adalah simulasi dan bukan berdasarkan foto anda. Bukan untuk kegunaan perubatan.",
+      "footer.note": "Demo Oraviu. Kes disimpan dalam pelayar ini sahaja.",
+      "footer.clear": "Padam data demo",
+      "footer.clearConfirm": "Padam semua kes yang disimpan dalam pelayar ini? Tindakan ini tidak boleh dibatalkan.",
+      "error.storage": "Pelayar ini menyekat storan setempat, jadi kes tidak dapat disimpan atau dimuatkan.",
+
+      "index.title": "Oraviu",
+      "index.heading": "Analisis foto mulut dengan semakan doktor gigi.",
+      "index.summary": "Muat naik foto gigi dan gusi anda, terima ringkasan pendek serta langkah seterusnya, dan dapatkan semakan doktor gigi.",
+      "index.patient.text": "Muat naik sehingga 5 foto dan baca laporan anda.",
+      "index.patient.cta": "Buka halaman pesakit",
+      "index.dentist.text": "Semak kes yang dihantar dan tulis ulasan anda.",
+      "index.dentist.cta": "Buka halaman doktor gigi",
+
+      "status.pending": "Menunggu semakan doktor gigi",
+      "status.reviewed": "Telah disemak doktor gigi",
+      "urgency.routine": "Penjagaan rutin",
+      "urgency.monitor": "Pantau di rumah",
+      "urgency.dentist": "Jumpa doktor gigi",
+      "priority.routine": "Rendah",
+      "priority.monitor": "Sederhana",
+      "priority.dentist": "Tinggi",
+      "photos.other": "{n} foto",
+      "case.submitted": "Dihantar {date}",
+      "photo.alt": "Foto {n} daripada {total}",
+      "photo.open": "Besarkan foto {n}",
+      "lightbox.close": "Tutup",
+      "lightbox.previous": "Foto sebelumnya",
+      "lightbox.next": "Foto seterusnya",
+
+      "report.summary": "Ringkasan pemerhatian AI",
+      "report.simulated": "Simulasi",
+      "report.recommendations": "Cadangan",
+      "report.nextStep": "Langkah seterusnya",
+      "report.review": "Semakan doktor gigi",
+      "report.review.comment": "Ulasan",
+      "report.review.recommendation": "Cadangan",
+      "report.review.date": "Disemak {date}",
+      "report.review.awaiting": "Doktor gigi belum menyemak laporan ini. Sila semak semula kemudian.",
+      "report.disclaimer": "Laporan ini untuk kesedaran umum sahaja. Ia bukan diagnosis dan tidak menggantikan pemeriksaan oleh profesional pergigian.",
+
+      "patient.title": "Oraviu · Pesakit",
+      "patient.tabs.label": "Bahagian pesakit",
+      "patient.tab.new": "Analisis baharu",
+      "patient.tab.reports": "Laporan saya",
+      "patient.new.heading": "Muat naik foto mulut anda",
+      "patient.new.intro": "Tambah sehingga 5 foto gigi dan gusi anda. Anda akan menerima ringkasan pendek serta langkah seterusnya, kemudian doktor gigi akan menyemaknya.",
+      "patient.drop.title": "Seret foto ke sini",
+      "patient.drop.hint": "JPG, PNG atau WebP. Sehingga 5 foto.",
+      "patient.drop.button": "Pilih foto",
+      "patient.photos.count": "{n} daripada {max} foto ditambah",
+      "patient.photos.remove": "Buang foto {n}",
+      "patient.analyze": "Analisis foto",
+      "patient.error.max": "Satu laporan hanya memuatkan {max} foto, jadi foto lebihan tidak ditambah.",
+      "patient.error.type": "{name} bukan imej, jadi ia tidak ditambah.",
+      "patient.error.read": "{name} tidak dapat dibuka, jadi ia tidak ditambah. Cuba JPG atau PNG.",
+      "patient.error.save": "Laporan tidak dapat disimpan dalam pelayar ini. Foto anda masih ada di sini, jadi anda boleh cuba lagi.",
+      "patient.analyzing.heading": "Menganalisis foto anda",
+      "patient.analyzing.step1": "Menyemak foto",
+      "patient.analyzing.step2": "Meneliti gigi dan gusi",
+      "patient.analyzing.step3": "Menyediakan laporan anda",
+      "patient.analyzing.note": "Mod demo: analisis ini adalah simulasi.",
+      "patient.reports.heading": "Laporan saya",
+      "patient.reports.intro": "Laporan yang dibuat dalam pelayar ini.",
+      "patient.reports.empty": "Belum ada laporan. Muat naik foto untuk membuat laporan pertama anda.",
+      "patient.reports.view": "Lihat laporan",
+      "patient.report.heading": "Laporan {id}",
+      "patient.report.new": "Mulakan analisis baharu",
+      "patient.report.missing": "Laporan {id} tidak ditemui dalam pelayar ini.",
+
+      "dentist.title": "Oraviu · Semakan doktor gigi",
+      "dentist.cases.heading": "Semakan kes",
+      "dentist.cases.intro": "Laporan yang dihantar dari halaman pesakit dalam pelayar ini dipaparkan di sini.",
+      "dentist.cases.empty": "Belum ada kes. Kes dipaparkan di sini selepas pesakit menghantar foto.",
+      "dentist.cases.emptyFiltered": "Tiada kes dengan status ini.",
+      "dentist.filter.label": "Tapis mengikut status",
+      "dentist.filter.all": "Semua ({n})",
+      "dentist.filter.pending": "Belum disemak ({n})",
+      "dentist.filter.reviewed": "Telah disemak ({n})",
+      "dentist.sort.label": "Susun mengikut",
+      "dentist.sort.priority": "Keutamaan",
+      "dentist.sort.newest": "Terbaharu dahulu",
+      "dentist.sort.oldest": "Terlama dahulu",
+      "dentist.col.case": "Kes",
+      "dentist.col.submitted": "Dihantar",
+      "dentist.col.photos": "Foto",
+      "dentist.col.priority": "Keutamaan AI",
+      "dentist.col.status": "Status",
+      "dentist.col.action": "Tindakan",
+      "dentist.action.review": "Semak",
+      "dentist.action.view": "Lihat",
+      "dentist.case.heading": "Kes {id}",
+      "dentist.case.back": "Semua kes",
+      "dentist.case.photos": "Foto pesakit",
+      "dentist.case.priority": "Keutamaan AI: {level}",
+      "dentist.case.missing": "Kes {id} tidak ditemui dalam pelayar ini.",
+      "dentist.form.heading": "Semakan anda",
+      "dentist.form.comment": "Ulasan",
+      "dentist.form.comment.hint": "Apa yang anda lihat dalam foto.",
+      "dentist.form.recommendation": "Cadangan untuk pesakit",
+      "dentist.form.recommendation.hint": "Apa yang perlu dilakukan pesakit seterusnya.",
+      "dentist.form.submit": "Hantar semakan",
+      "dentist.form.update": "Kemas kini semakan",
+      "dentist.form.required": "Tulis ulasan atau cadangan sebelum menghantar.",
+      "dentist.form.saved": "Semakan disimpan. Pesakit kini boleh membacanya dalam laporan mereka.",
+      "dentist.form.error": "Semakan tidak dapat disimpan. Cuba lagi.",
+
+      "profile.clear.summary": "Tiada kawasan yang jelas membimbangkan dalam foto. Warna gigi dan gusi kelihatan sekata secara umum.",
+      "profile.clear.rec1": "Teruskan memberus gigi dua kali sehari dengan ubat gigi berfluorida.",
+      "profile.clear.rec2": "Bersihkan celah gigi sekali sehari dengan flos atau berus celah gigi.",
+      "profile.clear.rec3": "Ambil foto baharu dalam masa kira-kira sebulan untuk memantau perubahan.",
+      "profile.clear.next": "Teruskan rutin biasa anda dan hadiri pemeriksaan gigi berkala.",
+      "profile.stain.summary": "Mungkin terdapat sedikit perubahan warna pada permukaan gigi hadapan. Ini sering dikaitkan dengan kopi, teh atau makanan dan minuman lain yang berwarna pekat.",
+      "profile.stain.rec1": "Berkumur dengan air selepas minum kopi, teh atau minuman berwarna.",
+      "profile.stain.rec2": "Berus gigi dua kali sehari dengan ubat gigi berfluorida.",
+      "profile.stain.rec3": "Tanya tentang pembersihan profesional semasa lawatan anda yang seterusnya.",
+      "profile.stain.next": "Tiada tindakan segera diperlukan. Lawatan pembersihan rutin boleh membantu.",
+      "profile.plaque.summary": "Mungkin terdapat sedikit pengumpulan plak di sepanjang garis gusi, paling ketara di sekitar gigi belakang.",
+      "profile.plaque.rec1": "Berus perlahan-lahan di sepanjang garis gusi selama dua minit, dua kali sehari.",
+      "profile.plaque.rec2": "Bersihkan celah gigi sekali sehari.",
+      "profile.plaque.rec3": "Ambil foto baharu dalam masa dua minggu untuk melihat sama ada kawasan itu lebih bersih.",
+      "profile.plaque.next": "Pantau di rumah. Maklumkan perkara ini semasa lawatan pergigian anda yang seterusnya.",
+      "profile.gum.summary": "Gusi mungkin kelihatan lebih merah atau bengkak daripada biasa di beberapa bahagian, yang boleh menjadi tanda kerengsaan.",
+      "profile.gum.rec1": "Berus perlahan-lahan dengan berus gigi lembut, termasuk di sepanjang garis gusi.",
+      "profile.gum.rec2": "Bersihkan celah gigi sekali sehari.",
+      "profile.gum.rec3": "Perhatikan sebarang pendarahan, kesakitan atau rasa tidak enak dan maklumkan kepada doktor gigi anda.",
+      "profile.gum.next": "Tempah pemeriksaan gigi dalam beberapa minggu akan datang.",
+      "profile.spot.summary": "Satu tompok yang lebih gelap mungkin kelihatan pada salah satu permukaan gigi. Tompok seperti ini boleh mempunyai beberapa punca dan wajar diperiksa.",
+      "profile.spot.rec1": "Pastikan kawasan itu bersih dengan memberus dengan teliti menggunakan ubat gigi berfluorida.",
+      "profile.spot.rec2": "Hadkan snek dan minuman bergula di antara waktu makan.",
+      "profile.spot.rec3": "Perhatikan sebarang rasa ngilu terhadap makanan panas, sejuk atau manis.",
+      "profile.spot.next": "Jumpa doktor gigi secepat mungkin supaya kawasan itu dapat diperiksa dengan teliti."
+    }
+  };
+
+  const listeners = [];
+  let current = "en";
+
+  const findLanguage = (code) => LANGUAGES.find((language) => language.code === code);
+
+  const detectLanguage = () => {
+    let saved = null;
+
+    try {
+      saved = localStorage.getItem(STORAGE_KEY);
+    } catch (error) {
+      saved = null;
+    }
+
+    if (findLanguage(saved)) {
+      return saved;
+    }
+
+    const browserCode = (navigator.language || "").slice(0, 2).toLowerCase();
+    return findLanguage(browserCode) ? browserCode : "en";
+  };
+
+  const t = (key, vars = {}) => {
+    const template = messages[current][key] ?? messages.en[key] ?? key;
+    return template.replace(/\{(\w+)\}/g, (match, name) => (name in vars ? String(vars[name]) : match));
+  };
+
+  const plural = (key, n) => {
+    const form = n === 1 && messages[current][`${key}.one`] ? "one" : "other";
+    return t(`${key}.${form}`, { n });
+  };
+
+  const apply = () => {
+    document.documentElement.lang = findLanguage(current).tag;
+
+    document.querySelectorAll("[data-i18n]").forEach((node) => {
+      node.textContent = t(node.dataset.i18n);
+    });
+
+    document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+      node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+    });
+
+    document.querySelectorAll("[data-lang]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.lang === current));
+    });
+  };
+
+  const setLanguage = (code) => {
+    if (!findLanguage(code) || code === current) {
+      return;
+    }
+
+    current = code;
+
+    try {
+      localStorage.setItem(STORAGE_KEY, code);
+    } catch (error) {
+      // The choice still applies to this page view.
+    }
+
+    apply();
+    listeners.forEach((listener) => listener());
+  };
+
+  const mountSwitchers = () => {
+    document.querySelectorAll("[data-lang-switch]").forEach((container) => {
+      LANGUAGES.forEach((language) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "segmented__button";
+        button.dataset.lang = language.code;
+        button.lang = language.tag;
+        button.title = language.name;
+        button.textContent = language.label;
+        button.addEventListener("click", () => setLanguage(language.code));
+        container.append(button);
+      });
+    });
+  };
+
+  current = detectLanguage();
+  mountSwitchers();
+  apply();
+
+  window.Oraviu.i18n = {
+    t,
+    plural,
+    locale: () => findLanguage(current).locale,
+    onChange: (listener) => listeners.push(listener)
+  };
+})();
