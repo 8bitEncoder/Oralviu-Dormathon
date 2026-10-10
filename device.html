@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="device.title">Oraviu · Device 3D model</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="device-page">
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="site-brand" href="index.html">Oraviu</a>
+      <span class="site-role" data-i18n="role.device">Device</span>
+      <div class="segmented" role="group" aria-label="Language" data-i18n-aria-label="lang.label" data-lang-switch></div>
+    </div>
+  </header>
+
+  <main class="workbench">
+    <h1 class="visually-hidden" data-i18n="device.heading">Intraoral camera 3D model</h1>
+    <div class="workbench__grid" aria-hidden="true"></div>
+    <div id="viewer" class="workbench__viewer" role="img" aria-label="Rotatable 3D model of the intraoral camera" data-i18n-aria-label="device.viewer.label"></div>
+    <p id="viewer-error" class="form-message form-message--error workbench__error" role="alert" data-i18n="device.error.webgl" hidden>This browser cannot show 3D graphics (WebGL), so the model cannot be displayed.</p>
+    <p id="view-caption" class="workbench__caption"></p>
+
+    <section class="device-panel part-tree" aria-labelledby="tree-heading">
+      <div class="device-panel__title">
+        <h2 id="tree-heading" data-i18n="device.tree.heading">Assembly tree</h2>
+        <span id="part-count"></span>
+      </div>
+      <div id="part-list" class="part-list"></div>
+    </section>
+
+    <section class="device-panel inspector" aria-labelledby="inspector-heading" aria-live="polite">
+      <div class="device-panel__title">
+        <h2 id="inspector-heading" data-i18n="device.inspector.heading">Selected component</h2>
+        <span id="part-number"></span>
+      </div>
+      <div class="inspector__body">
+        <p id="part-system" class="inspector__system"></p>
+        <h3 id="part-name" class="inspector__name"></h3>
+        <p id="part-detail" class="inspector__detail"></p>
+      </div>
+      <p class="inspector__basis">
+        <span data-i18n="device.inspector.basis">Source basis</span>
+        <strong id="part-basis"></strong>
+      </p>
+      <button id="isolate-button" class="button button--secondary button--small" type="button" aria-pressed="false"></button>
+    </section>
+
+    <div class="workbench__dock">
+      <p class="workbench__hint" data-i18n="device.hint">Model units are illustrative · Drag to orbit · Scroll to zoom</p>
+      <div class="device-toolbar" role="group" aria-label="Model controls" data-i18n-aria-label="device.tools.label">
+        <button id="assembly-button" class="device-toolbar__button" type="button" aria-pressed="true" data-i18n="device.tool.assembly">Assembly</button>
+        <button id="cutaway-button" class="device-toolbar__button" type="button" aria-pressed="false" data-i18n="device.tool.cutaway">Cutaway</button>
+        <span class="device-toolbar__divider"></span>
+        <label class="device-toolbar__explode">
+          <span data-i18n="device.tool.explode">Explode</span>
+          <input id="explode" type="range" min="0" max="100" value="0">
+          <output id="explode-value" for="explode">0%</output>
+        </label>
+        <span class="device-toolbar__divider"></span>
+        <button id="rotate-button" class="device-toolbar__button" type="button" aria-pressed="false" aria-label="Rotate" data-i18n-aria-label="device.tool.rotate">
+          <span aria-hidden="true">⟳</span>
+          <span class="device-toolbar__label" data-i18n="device.tool.rotate">Rotate</span>
+        </button>
+        <button id="front-button" class="device-toolbar__button" type="button" aria-label="Front" data-i18n-aria-label="device.tool.front">
+          <span aria-hidden="true">▣</span>
+          <span class="device-toolbar__label" data-i18n="device.tool.front">Front</span>
+        </button>
+        <button id="side-button" class="device-toolbar__button" type="button" aria-label="Side" data-i18n-aria-label="device.tool.side">
+          <span aria-hidden="true">◧</span>
+          <span class="device-toolbar__label" data-i18n="device.tool.side">Side</span>
+        </button>
+        <button id="reset-button" class="device-toolbar__button" type="button" aria-label="Reset" data-i18n-aria-label="device.tool.reset">
+          <span aria-hidden="true">⌖</span>
+          <span class="device-toolbar__label" data-i18n="device.tool.reset">Reset</span>
+        </button>
+        <span class="device-toolbar__divider"></span>
+        <button id="blueprint-button" class="device-toolbar__button" type="button" aria-label="Original blueprint" data-i18n-aria-label="device.blueprint.heading">
+          <span aria-hidden="true">▤</span>
+          <span class="device-toolbar__label" data-i18n="device.tool.blueprint">Blueprint</span>
+        </button>
+        <a class="device-toolbar__button" href="assets/ORALVIU-detailed-concept.glb" download aria-label="Download 3D model (GLB)" data-i18n-aria-label="device.tool.download">
+          <span aria-hidden="true">↓</span>
+          <span class="device-toolbar__label">GLB</span>
+        </a>
+      </div>
+      <p class="workbench__disclosure" data-i18n="device.disclosure">Engineering concept. Documented elements follow slides 4, 5 and 28 of the pitch deck; unspecified chips, PCB layout and connectors are proposed details.</p>
+    </div>
+  </main>
+
+  <dialog id="blueprint-dialog" class="blueprint" aria-labelledby="blueprint-heading">
+    <div class="blueprint__header">
+      <h2 id="blueprint-heading" data-i18n="device.blueprint.heading">Original blueprint</h2>
+      <form method="dialog">
+        <button class="button button--secondary button--small" data-i18n="lightbox.close">Close</button>
+      </form>
+    </div>
+    <img id="blueprint-image" class="blueprint__image" src="assets/reference-blueprint.png" alt="">
+    <p class="muted" data-i18n="device.blueprint.note">Original drawing from the pitch deck (slide 5). Details it leaves unspecified are shown in the 3D model as proposed concepts.</p>
+    <a class="blueprint__open" href="assets/reference-blueprint.png" target="_blank" rel="noopener" data-i18n="device.blueprint.open">Open full-size image</a>
+  </dialog>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/vendor/three.min.js"></script>
+  <script src="js/device-model.js"></script>
+  <script src="js/device.js"></script>
+</body>
+</html>

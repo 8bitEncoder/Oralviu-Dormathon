@@ -2,7 +2,7 @@
 
 Oraviu is a demo web system for oral photo analysis with dentist review. A patient uploads photos of their teeth and gums and receives a short report; a dentist then reviews the case and writes comments that appear in the patient's report.
 
-The visual style follows the SmileGuardian website, and the system covers the **Analyze** and **Review** steps of its Capture → Connect → Analyze → Review → Act journey.
+The visual style follows the SmileGuardian website, and the system covers the **Analyze** and **Review** steps of its Capture → Connect → Analyze → Review → Act journey. A third page shows the intraoral camera itself as an interactive 3D model.
 
 > **Demo only.** The analysis is simulated: results are not derived from the uploaded photos. Do not use this system for medical decisions.
 
@@ -11,9 +11,9 @@ The visual style follows the SmileGuardian website, and the system covers the **
 There is nothing to install or build.
 
 1. Open `index.html` in Chrome.
-2. Choose **Patient** or **Dentist**, or open `patient.html` and `dentist.html` directly.
+2. Choose **Patient**, **Dentist**, or **Device**, or open `patient.html`, `dentist.html`, and `device.html` directly.
 
-Open both pages in the same browser on the same computer, because cases are stored in that browser (see [Data storage](#data-storage)).
+Open the patient and dentist pages in the same browser on the same computer, because cases are stored in that browser (see [Data storage](#data-storage)).
 
 The system was tested in Chrome by opening the files directly. Other browsers have not been tested. A browser that keeps separate storage for each local file will not share cases between the two pages; in that case, serve the folder with a static file server such as the VS Code Live Server extension.
 
@@ -36,36 +36,73 @@ When a dentist submits a review, the open report updates without a reload.
 2. **Case view** shows the patient's photos and the same AI summary the patient sees.
 3. **Review form** takes a comment and a recommendation for the patient. At least one is required. A submitted review can be updated later.
 
+### Device page (`device.html`)
+
+A 3D workbench for the intraoral camera. It needs a browser with WebGL and stores nothing.
+
+1. **Drag** to orbit and **scroll** to zoom.
+2. **Assembly tree** lists the 12 parts. Choosing one zooms in on it and shows its description; a part inside the shell also opens the cutaway. Clicking a part on the model selects it without moving the camera.
+3. **Isolate component** hides every other part.
+4. **Toolbar** switches between Assembly and Cutaway, pulls the parts apart with the Explode slider, rotates the model, jumps to the front or side view, and resets everything.
+5. **Blueprint** opens the original technical drawing, and **GLB** downloads the model.
+
+The model is an engineering concept, not production CAD. Each part names its source in the pitch deck or is marked as a proposed detail.
+
 ### Languages
 
-Both pages switch between English, 中文, and Bahasa Melayu from the header. The choice is remembered in the browser. Text typed by a dentist is shown as written and is not translated.
+All pages switch between English, 中文, and Bahasa Melayu from the header. The choice is remembered in the browser. Text typed by a dentist is shown as written and is not translated.
 
 ## Technology stack
 
 - Semantic HTML
 - CSS
 - Vanilla JavaScript
+- three.js r180 for the 3D model, kept in the project as one prebuilt file
 - No frameworks, build tools, packages, or backend
 
 ## Project structure
 
 ```text
 Oraviu/
-├── index.html      Entry page linking to the two roles
+├── index.html      Entry page linking to the three pages
 ├── patient.html    Upload, analysis, and reports
 ├── dentist.html    Case list and review form
+├── device.html     3D model of the intraoral camera
 ├── styles.css      All styles
 ├── readme.md
+├── assets/
+│   ├── ORALVIU-detailed-concept.glb  Model file behind the GLB download
+│   └── reference-blueprint.png       Drawing shown by the Blueprint button
 └── js/
-    ├── i18n.js     Text in three languages and the language switcher
-    ├── store.js    Case storage (IndexedDB) and cross-page change signal
-    ├── analysis.js Simulated analysis
-    ├── ui.js       Shared rendering: chips, photo grid, lightbox, report blocks
-    ├── patient.js  Patient page logic
-    └── dentist.js  Dentist page logic
+    ├── i18n.js         Text in three languages and the language switcher
+    ├── store.js        Case storage (IndexedDB) and cross-page change signal
+    ├── analysis.js     Simulated analysis
+    ├── ui.js           Shared rendering: chips, photo grid, lightbox, report blocks
+    ├── patient.js      Patient page logic
+    ├── dentist.js      Dentist page logic
+    ├── device-model.js Geometry of the 12 device parts
+    ├── device.js       Device page logic: camera, selection, cutaway, explode
+    └── vendor/
+        └── three.min.js  three.js r180 with OrbitControls
 ```
 
-Scripts are plain `<script>` files that share one `window.Oraviu` object, so the pages work when opened directly from disk. Load order matters: `i18n.js`, `store.js`, `analysis.js` (patient page only), `ui.js`, then the page script.
+Scripts are plain `<script>` files that share one `window.Oraviu` object, so the pages work when opened directly from disk. Load order matters: `i18n.js`, `store.js`, `analysis.js` (patient page only), `ui.js`, then the page script. The device page loads `i18n.js`, `ui.js`, `vendor/three.min.js`, `device-model.js`, then `device.js`.
+
+## 3D device model
+
+`js/device-model.js` builds the camera from three.js shapes each time the page loads. No model file is read to draw it.
+
+- **Changing a part.** Edit its geometry in `createDevice()`. Each part is one group, listed in `PARTS` with the keys of its system and source labels.
+- **Changing the text.** Part names and descriptions are in `js/i18n.js` under `device.part.*`, `device.system.*`, and `device.basis.*`.
+- **The GLB download is a separate export.** `assets/ORALVIU-detailed-concept.glb` does not change when `device-model.js` changes, so export it again after editing the geometry.
+
+`js/vendor/three.min.js` is three.js with OrbitControls bundled into a classic script that sets `window.THREE`, because a browser will not load ES modules from a page opened from disk. To rebuild it for another three.js version, run this in an empty folder outside the project and copy the result over the file:
+
+```sh
+npm install three@0.180.0 esbuild
+echo 'export * from "three"; export { OrbitControls } from "three/addons/controls/OrbitControls.js";' > entry.js
+npx esbuild entry.js --bundle --format=iife --global-name=THREE --minify --outfile=three.min.js
+```
 
 ## Simulated analysis
 
@@ -139,3 +176,4 @@ All interface text is in the `messages` object in `js/i18n.js`, once per languag
 - Cases exist only in one browser on one computer. Clearing the browser's site data deletes them.
 - Dentists can write a comment and a recommendation. They cannot mark up photos or accept and reject individual findings.
 - Photos come from file upload only. Camera capture and a connection to the intraoral device are not included.
+- The 3D model is a concept. Its dimensions are illustrative, and the chips, PCB layout, and connectors are proposals that the pitch deck does not specify.
