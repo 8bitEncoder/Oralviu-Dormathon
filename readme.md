@@ -1,40 +1,59 @@
 # Oraviu
 
-Oraviu is a demo web system for oral photo analysis with dentist review. A patient uploads photos of their teeth and gums and receives a short report; a dentist then reviews the case and writes comments that appear in the patient's report.
+Oraviu is a prototype web system for oral photo screening with dentist review. A patient uploads photos of their teeth and gums and gets one clear result with a next step; a dentist then confirms or changes that result, and the patient's report updates.
 
-The visual style follows the SmileGuardian website, and the system covers the **Analyze** and **Review** steps of its Capture → Connect → Analyze → Review → Act journey. A third page shows the intraoral camera itself as an interactive 3D model.
+The visual style follows the SmileGuardian website, and the system covers the **Analyze**, **Review**, and **Act** steps of its Capture → Connect → Analyze → Review → Act journey. A third page shows the intraoral camera itself as an interactive 3D model.
 
-> **Demo only.** The analysis is simulated: results are not derived from the uploaded photos. Do not use this system for medical decisions.
+> **Prototype only.** Without the local server the result is simulated and is not derived from the uploaded photos. With the server, a general-purpose AI model screens the photos; it is not a dental device and has not been validated on dental images. Do not use this system for medical decisions.
 
 ## Getting started
 
-There is nothing to install or build.
+There are two ways to run it. The banner at the top of each page says which one is active.
+
+### Simulated results (nothing to install)
 
 1. Open `index.html` in Chrome.
 2. Choose **Patient**, **Dentist**, or **Device**, or open `patient.html`, `dentist.html`, and `device.html` directly.
 
-Open the patient and dentist pages in the same browser on the same computer, because cases are stored in that browser (see [Data storage](#data-storage)).
+The result is one of five preset profiles. A **Simulated result** list on the patient page lets the presenter choose which one, so the result can match the photo being shown.
 
-The system was tested in Chrome by opening the files directly. Other browsers have not been tested. A browser that keeps separate storage for each local file will not share cases between the two pages; in that case, serve the folder with a static file server such as the VS Code Live Server extension.
+### AI screening (local server)
+
+This needs Node.js 20.12 or later and a Claude API key. The API is billed separately from a Claude subscription.
+
+1. Run `npm install`.
+2. Copy `.env.example` to `.env` and paste the key after `ANTHROPIC_API_KEY=`.
+3. Run `npm start`.
+4. Open `http://127.0.0.1:3000` in Chrome.
+
+The server prints whether AI screening is on. Without a key it still serves the pages, with simulated results. The server listens on this computer only; set `HOST=0.0.0.0` to reach it from a phone on the same network, and remember that anyone who can reach it spends the key's credit.
+
+Open the patient and dentist pages in the same browser on the same computer and in the same way (both from disk or both from the server), because cases are stored in that browser (see [Data storage](#data-storage)).
+
+The system was tested in Edge, which shares Chrome's engine. Other browsers have not been tested. The AI screening call was tested against a stand-in for the Claude API and has not yet been run with a real key.
 
 ## How it works
 
 ### Patient page (`patient.html`)
 
-1. **Upload** up to 5 photos by drag-and-drop or the file picker. Files that are not images are left out with a message.
-2. **Analyze** runs the simulated analysis and creates a case numbered `ORV-0001`, `ORV-0002`, and so on. No personal details are collected.
-3. **Report** shows the photos, a short AI observation summary, three recommendations, and a next step.
-4. **My reports** lists every report with its status: *Awaiting dentist review* or *Reviewed by dentist*.
+1. **Upload** up to 5 photos by drag-and-drop or the file picker. A guide lists the five views to take. Files that are not images, and photos that are too dark or too blurry to judge, are left out with a message.
+2. **Analyze** screens the photos and creates a case numbered `ORV-0001`, `ORV-0002`, and so on. No personal details are collected. With AI screening, photos that do not show teeth or gums are sent back for a retake and no case is created.
+3. **Report** opens with the result: *Nothing visible to worry about*, *Keep an eye on this*, or *Please see a dentist*, each with its own colour and icon, a one-line reason, and the next step. The dentist's review, the photos, and the recommendations follow.
+4. **Request an appointment** appears when the result is *Please see a dentist*. The request is saved on the case and shown to the dentist.
+5. **My reports** lists every report with its status: *Awaiting dentist review* or *Reviewed by dentist*.
 
-When a dentist submits a review, the open report updates without a reload.
+When a dentist submits a review, the open report updates without a reload. The dentist's decision replaces the AI's, and the report says whether the dentist confirmed or changed it.
 
 ### Dentist page (`dentist.html`)
 
-1. **Case list** shows every submitted case with its date, photo count, AI priority, and status.
-   - Filter by All, Pending, or Reviewed.
+1. **Case list** opens on the cases waiting for review, with a count such as *2 to review · 1 urgent*. Each row shows the date, photo count, AI priority, status, and any appointment request.
+   - Filter by Pending, All, or Reviewed.
    - Sort by Priority, Newest first, or Oldest first. Priority puts pending cases first, then High to Low, then the longest-waiting case.
-2. **Case view** shows the patient's photos and the same AI summary the patient sees.
-3. **Review form** takes a comment and a recommendation for the patient. At least one is required. A submitted review can be updated later.
+2. **Case view** shows the patient's photos and the AI result with its suggested next step.
+3. **Review form** takes one decision: Routine care, Monitor at home, or See a dentist. The AI's suggestion is marked. A comment and a recommendation are optional.
+   - The decision and the send button stay locked until every photo has been opened full size, so a result cannot be approved unseen. Opened photos get a tick.
+   - **Send and open next case** saves the review and opens the next waiting case by priority. After the last one the list shows *All caught up*.
+   - A submitted review can be updated later.
 
 ### Device page (`device.html`)
 
@@ -58,7 +77,8 @@ All pages switch between English, 中文, and Bahasa Melayu from the header. The
 - CSS
 - Vanilla JavaScript
 - three.js r180 for the 3D model, kept in the project as one prebuilt file
-- No frameworks, build tools, packages, or backend
+- No frameworks or build tools in the pages
+- Optional local server: Node.js with the official Anthropic SDK (`@anthropic-ai/sdk`), used only for AI screening
 
 ## Project structure
 
@@ -69,6 +89,9 @@ Oraviu/
 ├── dentist.html    Case list and review form
 ├── device.html     3D model of the intraoral camera
 ├── styles.css      All styles
+├── server.mjs      Optional local server: serves the pages and runs AI screening
+├── package.json    The server's one dependency and the start script
+├── .env.example    Template for the API key file
 ├── readme.md
 ├── assets/
 │   ├── ORALVIU-detailed-concept.glb  Model file behind the GLB download
@@ -76,7 +99,7 @@ Oraviu/
 └── js/
     ├── i18n.js         Text in three languages and the language switcher
     ├── store.js        Case storage (IndexedDB) and cross-page change signal
-    ├── analysis.js     Simulated analysis
+    ├── analysis.js     Screening: calls the server, or simulates a result without it
     ├── ui.js           Shared rendering: chips, photo grid, lightbox, report blocks
     ├── patient.js      Patient page logic
     ├── dentist.js      Dentist page logic
@@ -86,7 +109,7 @@ Oraviu/
         └── three.min.js  three.js r180 with OrbitControls
 ```
 
-Scripts are plain `<script>` files that share one `window.Oraviu` object, so the pages work when opened directly from disk. Load order matters: `i18n.js`, `store.js`, `analysis.js` (patient page only), `ui.js`, then the page script. The device page loads `i18n.js`, `ui.js`, `vendor/three.min.js`, `device-model.js`, then `device.js`.
+Scripts are plain `<script>` files that share one `window.Oraviu` object, so the pages work when opened directly from disk. Load order matters: `i18n.js`, `store.js`, `analysis.js`, `ui.js`, then the page script. The entry page loads `i18n.js` and `analysis.js` only, so its banner matches the active mode. The device page loads `i18n.js`, `ui.js`, `vendor/three.min.js`, `device-model.js`, then `device.js`.
 
 ## 3D device model
 
@@ -104,11 +127,11 @@ echo 'export * from "three"; export { OrbitControls } from "three/addons/control
 npx esbuild entry.js --bundle --format=iife --global-name=THREE --minify --outfile=three.min.js
 ```
 
-## Simulated analysis
+## Analysis
 
-`js/analysis.js` picks one of five preset profiles from a fingerprint of the uploaded files. The same photos always give the same profile, but the profile says nothing about what the photos show.
+Every result is one of five profiles. The profile fixes the result the patient sees and the priority the dentist sees.
 
-| Profile  | Observation                       | Next step       | Dentist priority |
+| Profile  | Observation                       | Result          | Dentist priority |
 | -------- | --------------------------------- | --------------- | ---------------- |
 | `clear`  | No obvious areas of concern       | Routine care    | Low              |
 | `stain`  | Possible surface discolouration   | Routine care    | Low              |
@@ -118,23 +141,35 @@ npx esbuild entry.js --bundle --format=iife --global-name=THREE --minify --outfi
 
 The wording for each profile lives in `js/i18n.js` under the `profile.*` keys.
 
-### Replacing it with a real model
+`run(photos, { lang, profile })` in `js/analysis.js` asks `api/status` once whether the server has a key, then takes one of two paths.
 
-`run(photos)` in `js/analysis.js` is the only function to replace. It receives the photos as `{ name, dataUrl }` objects and returns:
+### Simulated
+
+Used when the page is opened from disk or the server has no key. The profile is the one chosen in the **Simulated result** list, or a fingerprint of the files when the list is on *Automatic*. Either way it says nothing about what the photos show, and the report is labelled *Simulated*.
+
+### AI screening
+
+`run` posts the photos to `api/analyze`. `server.mjs` sends them to Claude (`claude-opus-5-5`) with the instructions in `SYSTEM_PROMPT` and a JSON schema, and gets back:
 
 ```js
-{ profile: "plaque", urgency: "monitor", simulated: true }
+{ usable: true, problem: "none", profile: "spot", observation: "There is a dark spot on a lower back tooth on the left side." }
 ```
 
-Three things change with a real model:
+- **`usable` and `problem`** reject photos that cannot be judged: `not_mouth`, `too_blurry`, or `too_dark`. The patient is asked to retake them.
+- **`profile`** is the most serious thing visible. The result and priority come from the table above, not from the model.
+- **`observation`** is one or two plain sentences in the patient's language. It replaces the preset summary in the report and is stored as written, so it does not change when the language is switched.
 
-- **A backend is needed.** An API key must not be placed in these static files.
-- **The call becomes asynchronous.** `analyze()` in `js/patient.js` uses the result of `run` directly, so add `await` there.
-- **Free-text results need a new renderer.** `analysisBlock` in `js/ui.js` looks up text by profile key, so a model that writes its own summary needs that function changed.
+The request opts into Anthropic's server-side fallback, so a request the model declines is retried on a fallback model. If the call fails, the patient sees a message and keeps their photos; the reason is printed in the server's terminal. A failed call never falls back to a simulated result.
+
+To use a different model or service, change `screenPhotos` in `server.mjs` and keep the returned shape.
+
+### Photo quality check
+
+Before a photo is added, `qualityProblem` in `js/patient.js` measures its brightness and its edge sharpness in the browser. The limits (`MIN_BRIGHTNESS`, `MIN_SHARPNESS`) are loose on purpose and were set on synthetic test images, not on real mouth photos, so tune them once real photos from the camera are available.
 
 ## Data storage
 
-Everything is stored in the browser. Nothing is sent to a server.
+Cases are stored in the browser only. With AI screening on, the photos are also sent through the local server to the Claude API to be screened; the server keeps no copy.
 
 | Where        | Name                | Contents                                                 |
 | ------------ | ------------------- | -------------------------------------------------------- |
@@ -151,9 +186,10 @@ A case record looks like this:
   id: "ORV-0001",
   createdAt: "2026-10-10T08:57:00.000Z",
   photoCount: 4,
-  analysis: { profile: "spot", urgency: "dentist", simulated: true },
+  analysis: { profile: "spot", urgency: "dentist", simulated: true },  // AI screening: simulated false, plus observation
   status: "pending",            // or "reviewed"
-  review: null                  // or { comment, recommendation, reviewedAt }
+  review: null,                 // or { verdict, comment, recommendation, reviewedAt }
+  appointment: { requestedAt }  // only after the patient requests one
 }
 ```
 
@@ -171,9 +207,12 @@ All interface text is in the `messages` object in `js/i18n.js`, once per languag
 
 ## Current limitations
 
-- The analysis is simulated and must not be presented as a real result.
+- Simulated results must not be presented as real ones. AI screening uses a general-purpose model that has not been validated on dental images, so its results are not real findings either.
+- Photos show surfaces only. Decay between teeth and anything under the gums cannot be seen, so a clear result never means the mouth is healthy.
+- The photo-opening lock shows that the dentist opened each photo, not that they studied it. There is no second review or audit of decisions.
+- An appointment request is only a flag on the case. There is no calendar, and nobody is notified.
 - There is no login. Anyone who opens `dentist.html` can review cases, and the patient page shows every report stored in the browser.
 - Cases exist only in one browser on one computer. Clearing the browser's site data deletes them.
-- Dentists can write a comment and a recommendation. They cannot mark up photos or accept and reject individual findings.
-- Photos come from file upload only. Camera capture and a connection to the intraoral device are not included.
+- Dentists choose a decision and can add a comment and a recommendation. They cannot mark up photos or accept and reject individual findings.
+- Photos come from file upload only. The five-view guide is a list, not a step-by-step capture. Camera capture and a connection to the intraoral device are not included.
 - The 3D model is a concept. Its dimensions are illustrative, and the chips, PCB layout, and connectors are proposals that the pitch deck does not specify.

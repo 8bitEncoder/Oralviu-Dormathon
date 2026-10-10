@@ -7,6 +7,10 @@
   const MAX_EDGE = 1280;
   const JPEG_QUALITY = 0.85;
   const STEP_DELAY = 900;
+  // Quality limits are deliberately loose: they only stop photos that nobody could judge.
+  const QUALITY_EDGE = 512;
+  const MIN_BRIGHTNESS = 35;
+  const MIN_SHARPNESS = 10;
 
   const views = {
     new: document.querySelector("#view-new"),
@@ -22,6 +26,8 @@
   const photoCount = document.querySelector("#photo-count");
   const uploadMessages = document.querySelector("#upload-messages");
   const analyzeButton = document.querySelector("#analyze-button");
+  const demoControl = document.querySelector("#demo-control");
+  const demoProfile = document.querySelector("#demo-profile");
   const stepItems = Array.from(document.querySelectorAll(".analyzing__step"));
   const reportList = document.querySelector("#report-list");
   const reportEmpty = document.querySelector("#report-empty");
@@ -70,6 +76,51 @@
       image.src = url;
     });
 
+  // Returns "dark" or "blurry" for a photo that cannot be judged, or null for a usable one.
+  const qualityProblem = (source) => {
+    const scale = Math.min(1, QUALITY_EDGE / Math.max(source.width, source.height));
+    const width = Math.max(3, Math.round(source.width * scale));
+    const height = Math.max(3, Math.round(source.height * scale));
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+
+    canvas.width = width;
+    canvas.height = height;
+    context.drawImage(source, 0, 0, width, height);
+
+    const { data } = context.getImageData(0, 0, width, height);
+    const luma = new Float32Array(width * height);
+    let brightness = 0;
+
+    for (let index = 0; index < luma.length; index += 1) {
+      luma[index] = 0.299 * data[index * 4] + 0.587 * data[index * 4 + 1] + 0.114 * data[index * 4 + 2];
+      brightness += luma[index];
+    }
+
+    if (brightness / luma.length < MIN_BRIGHTNESS) {
+      return "dark";
+    }
+
+    // Sharp photos have strong edges, so the edge strength (Laplacian) varies a lot across the image.
+    let sum = 0;
+    let sumOfSquares = 0;
+
+    for (let y = 1; y < height - 1; y += 1) {
+      for (let x = 1; x < width - 1; x += 1) {
+        const index = y * width + x;
+        const edge = luma[index - width] + luma[index + width] + luma[index - 1] + luma[index + 1] - 4 * luma[index];
+
+        sum += edge;
+        sumOfSquares += edge * edge;
+      }
+    }
+
+    const count = (width - 2) * (height - 2);
+    const mean = sum / count;
+
+    return sumOfSquares / count - mean * mean < MIN_SHARPNESS ? "blurry" : null;
+  };
+
   const toPhoto = (file) =>
     loadImage(file).then((image) => {
       const scale = Math.min(1, MAX_EDGE / Math.max(image.naturalWidth, image.naturalHeight));
@@ -82,7 +133,11 @@
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-      return { name: file.name, dataUrl: canvas.toDataURL("image/jpeg", JPEG_QUALITY) };
+      return {
+        name: file.name,
+        dataUrl: canvas.toDataURL("image/jpeg", JPEG_QUALITY),
+        problem: qualityProblem(canvas)
+      };
     });
 
   const renderUpload = () => {
@@ -141,10 +196,20 @@
 
     const photos = await Promise.all(
       images.slice(0, room).map((file) =>
-        toPhoto(file).catch(() => {
-          messages.push({ key: "patient.error.read", vars: { name: file.name } });
-          return null;
-        })
+        toPhoto(file).then(
+          ({ problem, ...photo }) => {
+            if (problem) {
+              messages.push({ key: `patient.error.${problem}`, vars: { name: file.name } });
+              return null;
+            }
+
+            return photo;
+          },
+          () => {
+            messages.push({ key: "patient.error.read", vars: { name: file.name } });
+            return null;
+          }
+        )
       )
     );
 
@@ -162,6 +227,13 @@
     });
   };
 
+  // Back to the upload view with the photos kept, so the patient can swap one and try again.
+  const failAnalysis = (key) => {
+    state.analyzing = false;
+    state.messages = [{ key }];
+    route();
+  };
+
   const analyze = async () => {
     if (state.analyzing || !state.photos.length) {
       return;
@@ -171,22 +243,50 @@
     state.messages = [];
     showView("analyzing");
 
-    try {
-      for (let step = 0; step < stepItems.length; step += 1) {
-        setStep(step);
-        await wait(STEP_DELAY);
-      }
+    // The screening starts now and the steps play meanwhile; the last step stays active until it answers.
+    const screening = analysis
+      .run(state.photos, { lang: i18n.language(), profile: demoProfile.value })
+      .then(
+        (result) => ({ result }),
+        (error) => ({ error })
+      );
 
-      const record = await store.addCase({ photos: state.photos, analysis: analysis.run(state.photos) });
+    for (let step = 0; step < stepItems.length; step += 1) {
+      setStep(step);
+      await wait(STEP_DELAY);
+    }
+
+    const { result, error } = await screening;
+
+    if (error) {
+      failAnalysis("patient.error.analysis");
+      return;
+    }
+
+    if (result.unusable) {
+      failAnalysis(`patient.error.unusable.${result.problem}`);
+      return;
+    }
+
+    try {
+      const record = await store.addCase({ photos: state.photos, analysis: result });
 
       state.photos = [];
       state.analyzing = false;
       location.hash = `#report/${record.id}`;
-    } catch (error) {
-      state.analyzing = false;
-      state.messages = [{ key: "patient.error.save" }];
-      route();
+    } catch (saveError) {
+      failAnalysis("patient.error.save");
     }
+  };
+
+  const requestAppointment = async () => {
+    try {
+      await store.requestAppointment(state.reportId);
+    } catch (error) {
+      storageError.hidden = false;
+    }
+
+    renderReport();
   };
 
   const reportCard = (record) =>
@@ -199,7 +299,10 @@
           class: "case-card__meta",
           text: `${t("case.submitted", { date: ui.formatDate(record.createdAt) })} · ${i18n.plural("photos", record.photoCount)}`
         }),
-        el("span", { class: "case-card__chips" }, [ui.statusChip(record.status), ui.urgencyChip(record.analysis.urgency)]),
+        el("span", { class: "case-card__chips" }, [
+          ui.statusChip(record.status),
+          ui.urgencyChip(ui.finalUrgency(record))
+        ]),
         el("span", { class: "case-card__view", text: t("patient.reports.view") })
       ])
     );
@@ -254,9 +357,10 @@
           text: `${t("case.submitted", { date: ui.formatDate(record.createdAt) })} · ${i18n.plural("photos", record.photos.length)}`
         })
       ]),
-      ui.photoGrid(record.photos),
-      ui.analysisBlock(record.analysis),
+      ui.verdictBlock(record, { onAppointment: requestAppointment }),
       ui.reviewBlock(record.review),
+      ui.photoGrid(record.photos),
+      ui.analysisBlock(record.analysis, { nextStep: false }),
       el("p", { class: "disclaimer", text: t("report.disclaimer") })
     );
   };
@@ -318,6 +422,10 @@
   });
 
   analyzeButton.addEventListener("click", analyze);
+  // Choosing the result by hand only makes sense while results are simulated.
+  analysis.available().then((ai) => {
+    demoControl.hidden = ai;
+  });
   window.addEventListener("hashchange", route);
   i18n.onChange(render);
   store.onChange(render);

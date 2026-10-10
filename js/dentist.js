@@ -4,6 +4,7 @@
   const { el } = ui;
 
   const URGENCY_RANK = { dentist: 0, monitor: 1, routine: 2 };
+  const VERDICTS = ["routine", "monitor", "dentist"];
   const byOldest = (a, b) => a.seq - b.seq;
   const SORTERS = {
     priority: (a, b) =>
@@ -20,6 +21,7 @@
   };
   const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
   const sortSelect = document.querySelector("#sort-select");
+  const inboxSummary = document.querySelector("#inbox-summary");
   const caseTable = document.querySelector("#case-table");
   const caseRows = document.querySelector("#case-rows");
   const caseEmpty = document.querySelector("#case-empty");
@@ -28,13 +30,28 @@
   const caseLayout = document.querySelector("#case-layout");
   const caseDetail = document.querySelector("#case-detail");
   const reviewForm = document.querySelector("#review-form");
+  const reviewLock = document.querySelector("#review-lock");
+  const verdictOptions = document.querySelector("#verdict-options");
   const commentField = document.querySelector("#review-comment");
   const recommendationField = document.querySelector("#review-recommendation");
   const reviewMessage = document.querySelector("#review-message");
   const submitButton = document.querySelector("#review-submit");
   const storageError = document.querySelector("#storage-error");
 
-  const state = { view: "cases", caseId: null, formCaseId: null, filter: "all", sort: "priority", formMessage: null };
+  const state = {
+    view: "cases",
+    caseId: null,
+    formCaseId: null,
+    filter: "pending",
+    sort: "priority",
+    formMessage: null,
+    verdict: null,
+    viewed: new Set(),
+    photoCount: 0,
+    aiUrgency: null,
+    pending: false,
+    saving: false
+  };
   let renderToken = 0;
 
   const showView = (name) => {
@@ -44,6 +61,9 @@
     });
     window.scrollTo(0, 0);
   };
+
+  const statusChips = (record) =>
+    el("span", { class: "chip-row" }, [ui.statusChip(record.status), record.appointment && ui.appointmentChip()]);
 
   const caseRow = (record) => {
     const href = `#case/${record.id}`;
@@ -55,13 +75,21 @@
       cell("dentist.col.submitted", ui.formatDate(record.createdAt)),
       cell("dentist.col.photos", String(record.photoCount)),
       cell("dentist.col.priority", ui.priorityChip(record.analysis.urgency)),
-      cell("dentist.col.status", ui.statusChip(record.status)),
+      cell("dentist.col.status", statusChips(record)),
       el(
         "td",
         { class: "case-table__action" },
         el("a", { class: "button button--small", href, "aria-label": `${action} ${record.id}`, text: action })
       )
     ]);
+  };
+
+  const emptyKey = (total) => {
+    if (!total) {
+      return "dentist.cases.empty";
+    }
+
+    return state.filter === "pending" ? "dentist.cases.emptyPending" : "dentist.cases.emptyFiltered";
   };
 
   const renderCases = async () => {
@@ -79,11 +107,8 @@
       return;
     }
 
-    const counts = {
-      all: records.length,
-      pending: records.filter((record) => record.status === "pending").length,
-      reviewed: records.filter((record) => record.status === "reviewed").length
-    };
+    const pending = records.filter((record) => record.status === "pending");
+    const counts = { all: records.length, pending: pending.length, reviewed: records.length - pending.length };
     const visible = records
       .filter((record) => state.filter === "all" || record.status === state.filter)
       .sort(SORTERS[state.sort]);
@@ -95,10 +120,15 @@
       button.setAttribute("aria-pressed", String(filter === state.filter));
     });
 
+    inboxSummary.hidden = pending.length === 0;
+    inboxSummary.textContent = t("dentist.inbox.summary", {
+      pending: pending.length,
+      urgent: pending.filter((record) => record.analysis.urgency === "dentist").length
+    });
     caseRows.replaceChildren(...visible.map(caseRow));
     caseTable.hidden = visible.length === 0;
     caseEmpty.hidden = visible.length > 0;
-    caseEmpty.textContent = t(records.length ? "dentist.cases.emptyFiltered" : "dentist.cases.empty");
+    caseEmpty.textContent = t(emptyKey(records.length));
   };
 
   const renderFormMessage = () => {
@@ -110,6 +140,41 @@
       reviewMessage.textContent = t(message.key);
       reviewMessage.classList.toggle("form-message--error", message.kind === "error");
     }
+  };
+
+  // The buttons are built once and updated in place, so the pressed one keeps keyboard focus.
+  const verdictButtons = VERDICTS.map((urgency) => {
+    const label = el("span");
+    const hint = el("span", { class: "verdict-option__ai" });
+    const button = el("button", { class: `verdict-option verdict-option--${urgency}`, type: "button" }, [label, hint]);
+
+    button.addEventListener("click", () => {
+      state.verdict = urgency;
+      state.formMessage = null;
+      renderReviewControls();
+    });
+    verdictOptions.append(button);
+
+    return { urgency, button, label, hint };
+  });
+
+  const renderReviewControls = () => {
+    // A first review stays locked until every photo has been opened, so a result cannot be approved unseen.
+    const locked = state.pending && state.viewed.size < state.photoCount;
+
+    reviewLock.hidden = !locked;
+    reviewLock.textContent = t("dentist.form.lock", { n: state.viewed.size, total: state.photoCount });
+
+    verdictButtons.forEach(({ urgency, button, label, hint }) => {
+      button.disabled = locked;
+      button.setAttribute("aria-pressed", String(state.verdict === urgency));
+      label.textContent = t(`urgency.${urgency}`);
+      hint.textContent = urgency === state.aiUrgency ? t("dentist.form.aiSuggested") : "";
+    });
+
+    submitButton.disabled = locked || state.saving;
+    submitButton.textContent = t(state.pending ? "dentist.form.next" : "dentist.form.update");
+    renderFormMessage();
   };
 
   const renderCase = async () => {
@@ -137,9 +202,22 @@
       return;
     }
 
+    // Set up the form once per opened case so later refreshes never overwrite the dentist's work in progress.
+    if (state.formCaseId !== record.id) {
+      state.formCaseId = record.id;
+      state.verdict = (record.review && record.review.verdict) || null;
+      state.viewed = new Set();
+      commentField.value = record.review ? record.review.comment : "";
+      recommendationField.value = record.review ? record.review.recommendation : "";
+    }
+
+    state.photoCount = record.photos.length;
+    state.aiUrgency = record.analysis.urgency;
+    state.pending = record.status === "pending";
+
     caseHeader.replaceChildren(
       el("h1", { text: t("dentist.case.heading", { id: record.id }) }),
-      ui.statusChip(record.status),
+      statusChips(record),
       el("p", {
         class: "report-header__meta",
         text: [
@@ -152,19 +230,17 @@
     caseDetail.replaceChildren(
       el("section", { class: "card report-section" }, [
         el("h2", { text: t("dentist.case.photos") }),
-        ui.photoGrid(record.photos)
+        ui.photoGrid(record.photos, {
+          viewed: state.viewed,
+          onView: (index) => {
+            state.viewed.add(index);
+            renderReviewControls();
+          }
+        })
       ]),
       ui.analysisBlock(record.analysis)
     );
-    submitButton.textContent = t(record.review ? "dentist.form.update" : "dentist.form.submit");
-    renderFormMessage();
-
-    // Fill the form once per opened case so later refreshes never overwrite what the dentist is typing.
-    if (state.formCaseId !== record.id) {
-      state.formCaseId = record.id;
-      commentField.value = record.review ? record.review.comment : "";
-      recommendationField.value = record.review ? record.review.recommendation : "";
-    }
+    renderReviewControls();
   };
 
   const render = () => {
@@ -208,23 +284,35 @@
   reviewForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const comment = commentField.value.trim();
-    const recommendation = recommendationField.value.trim();
-
-    if (!comment && !recommendation) {
-      state.formMessage = { kind: "error", key: "dentist.form.required" };
+    if (!state.verdict) {
+      state.formMessage = { kind: "error", key: "dentist.form.verdictRequired" };
       renderFormMessage();
-      commentField.focus();
+      verdictButtons[0].button.focus();
       return;
     }
 
+    const wasPending = state.pending;
+
+    state.saving = true;
     submitButton.disabled = true;
 
     try {
-      const saved = await store.saveReview(state.caseId, { comment, recommendation });
+      const saved = await store.saveReview(state.caseId, {
+        verdict: state.verdict,
+        comment: commentField.value.trim(),
+        recommendation: recommendationField.value.trim()
+      });
 
       if (!saved) {
         throw new Error("Case no longer exists");
+      }
+
+      if (wasPending) {
+        const next = (await store.listCases()).filter((record) => record.status === "pending").sort(SORTERS.priority)[0];
+
+        state.saving = false;
+        location.hash = next ? `#case/${next.id}` : "#cases";
+        return;
       }
 
       state.formMessage = { kind: "success", key: "dentist.form.saved" };
@@ -232,7 +320,7 @@
       state.formMessage = { kind: "error", key: "dentist.form.error" };
     }
 
-    submitButton.disabled = false;
+    state.saving = false;
     render();
   });
 

@@ -14,7 +14,7 @@
       <div class="segmented" role="group" aria-label="Language" data-i18n-aria-label="lang.label" data-lang-switch></div>
     </div>
   </header>
-  <p class="demo-banner" data-i18n="demo.banner">Demo version: analysis results are simulated and are not based on your photos. Not for medical use.</p>
+  <p class="demo-banner" data-i18n="demo.banner" data-i18n-ai="demo.banner.ai">Demo version: analysis results are simulated and are not based on your photos. Not for medical use.</p>
 
   <main class="site-main">
     <div class="container">
@@ -24,11 +24,12 @@
         <header class="page-intro">
           <h1 id="cases-heading" data-i18n="dentist.cases.heading">Case review</h1>
           <p data-i18n="dentist.cases.intro">Reports submitted from the patient page in this browser appear here.</p>
+          <p id="inbox-summary" class="inbox-summary" aria-live="polite" hidden></p>
         </header>
         <div class="toolbar">
           <div class="segmented" role="group" aria-label="Filter by status" data-i18n-aria-label="dentist.filter.label">
-            <button class="segmented__button" type="button" data-filter="all" aria-pressed="true">All</button>
-            <button class="segmented__button" type="button" data-filter="pending" aria-pressed="false">Pending</button>
+            <button class="segmented__button" type="button" data-filter="pending" aria-pressed="true">Pending</button>
+            <button class="segmented__button" type="button" data-filter="all" aria-pressed="false">All</button>
             <button class="segmented__button" type="button" data-filter="reviewed" aria-pressed="false">Reviewed</button>
           </div>
           <label class="select-field">
@@ -64,18 +65,23 @@
           <div id="case-detail" class="case-detail"></div>
           <form id="review-form" class="card review-form" novalidate>
             <h2 data-i18n="dentist.form.heading">Your review</h2>
+            <p id="review-lock" class="form-message" role="status" hidden></p>
+            <fieldset class="verdict-picker">
+              <legend data-i18n="dentist.form.verdict">Your decision</legend>
+              <div id="verdict-options" class="verdict-picker__options"></div>
+            </fieldset>
             <div class="field">
-              <label for="review-comment" data-i18n="dentist.form.comment">Comment</label>
+              <label for="review-comment" data-i18n="dentist.form.comment">Comment (optional)</label>
               <span id="review-comment-hint" class="field__hint" data-i18n="dentist.form.comment.hint">What you see in the photos.</span>
               <textarea id="review-comment" aria-describedby="review-comment-hint"></textarea>
             </div>
             <div class="field">
-              <label for="review-recommendation" data-i18n="dentist.form.recommendation">Recommendation for the patient</label>
+              <label for="review-recommendation" data-i18n="dentist.form.recommendation">Recommendation for the patient (optional)</label>
               <span id="review-recommendation-hint" class="field__hint" data-i18n="dentist.form.recommendation.hint">What the patient should do next.</span>
               <textarea id="review-recommendation" aria-describedby="review-recommendation-hint"></textarea>
             </div>
             <p id="review-message" class="form-message" role="status" hidden></p>
-            <button id="review-submit" class="button" type="submit">Submit review</button>
+            <button id="review-submit" class="button" type="submit">Send and open next case</button>
           </form>
         </div>
       </section>
@@ -91,6 +97,7 @@
 
   <script src="js/i18n.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/analysis.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/dentist.js"></script>
 </body>

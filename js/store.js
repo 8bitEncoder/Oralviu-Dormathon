@@ -120,7 +120,7 @@ window.Oraviu = window.Oraviu || {};
     });
   };
 
-  const saveReview = (id, { comment, recommendation }) => {
+  const updateCase = (id, change) => {
     const seq = parseId(id);
 
     if (seq === null) {
@@ -137,13 +137,23 @@ window.Oraviu = window.Oraviu || {};
           return;
         }
 
-        record.status = "reviewed";
-        record.review = { comment, recommendation, reviewedAt: new Date().toISOString() };
+        change(record);
         cases.put(record);
         done(record);
       };
     }).then(announce);
   };
+
+  const saveReview = (id, { verdict, comment, recommendation }) =>
+    updateCase(id, (record) => {
+      record.status = "reviewed";
+      record.review = { verdict, comment, recommendation, reviewedAt: new Date().toISOString() };
+    });
+
+  const requestAppointment = (id) =>
+    updateCase(id, (record) => {
+      record.appointment = { requestedAt: new Date().toISOString() };
+    });
 
   const clear = () =>
     transact([CASES, PHOTOS], "readwrite", (tx) => {
@@ -168,6 +178,7 @@ window.Oraviu = window.Oraviu || {};
     listCases,
     getCase,
     saveReview,
+    requestAppointment,
     clear,
     onChange: (listener) => listeners.push(listener)
   };

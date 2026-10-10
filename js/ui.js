@@ -37,6 +37,10 @@ window.Oraviu = window.Oraviu || {};
   const statusChip = (status) => chip(status, t(`status.${status}`));
   const urgencyChip = (urgency) => chip(urgency, t(`urgency.${urgency}`));
   const priorityChip = (urgency) => chip(urgency, t(`priority.${urgency}`));
+  const appointmentChip = () => chip("dentist", t("appointment.chip"));
+
+  // The dentist's decision replaces the AI's as soon as there is one.
+  const finalUrgency = (record) => (record.review && record.review.verdict) || record.analysis.urgency;
 
   let lightbox = null;
 
@@ -58,6 +62,7 @@ window.Oraviu = window.Oraviu || {};
 
     let photos = [];
     let index = 0;
+    let onShow = null;
 
     const show = () => {
       const label = t("photo.alt", { n: index + 1, total: photos.length });
@@ -70,6 +75,10 @@ window.Oraviu = window.Oraviu || {};
       next.setAttribute("aria-label", t("lightbox.next"));
       previous.hidden = photos.length < 2;
       next.hidden = photos.length < 2;
+
+      if (onShow) {
+        onShow(index);
+      }
     };
 
     const step = (delta) => {
@@ -98,9 +107,10 @@ window.Oraviu = window.Oraviu || {};
     document.body.append(dialog);
 
     lightbox = {
-      open: (items, startIndex) => {
+      open: (items, startIndex, onPhotoShown) => {
         photos = items;
         index = startIndex;
+        onShow = onPhotoShown || null;
         show();
         dialog.showModal();
       }
@@ -109,42 +119,85 @@ window.Oraviu = window.Oraviu || {};
     return lightbox;
   };
 
-  const photoGrid = (photos) =>
-    el(
-      "ul",
-      { class: "photo-grid" },
-      photos.map((photo, index) => {
-        const button = el(
-          "button",
-          { class: "photo-thumb__open", type: "button", "aria-label": t("photo.open", { n: index + 1 }) },
-          el("img", { src: photo.dataUrl, alt: "" })
-        );
+  // Pass viewed (a Set of photo indexes) and onView to mark and report the photos that were opened full size.
+  const photoGrid = (photos, { viewed, onView } = {}) => {
+    const items = photos.map((photo, index) => {
+      const button = el(
+        "button",
+        { class: "photo-thumb__open", type: "button", "aria-label": t("photo.open", { n: index + 1 }) },
+        el("img", { src: photo.dataUrl, alt: "" })
+      );
 
-        button.addEventListener("click", () => getLightbox().open(photos, index));
-        return el("li", { class: "photo-thumb" }, button);
-      })
-    );
+      button.addEventListener("click", () => getLightbox().open(photos, index, onView && markViewed));
+      return el("li", { class: viewed && viewed.has(index) ? "photo-thumb is-viewed" : "photo-thumb" }, button);
+    });
 
-  const analysisBlock = (analysis) => {
+    const markViewed = (index) => {
+      items[index].classList.add("is-viewed");
+      onView(index);
+    };
+
+    return el("ul", { class: "photo-grid" }, items);
+  };
+
+  const VERDICT_ICONS = { routine: "✓", monitor: "!", dentist: "✚" };
+
+  const verdictBlock = (record, { onAppointment } = {}) => {
+    const { analysis, review, appointment } = record;
+    const urgency = finalUrgency(record);
+    const changed = Boolean(review) && urgency !== analysis.urgency;
+    const base = `profile.${analysis.profile}`;
+    let source = analysis.simulated ? "simulated" : "ai";
+    let action = null;
+
+    if (review) {
+      source = changed ? "changed" : "confirmed";
+    }
+
+    if (urgency === "dentist" && appointment) {
+      action = el("p", {
+        class: "verdict__done",
+        text: t("appointment.requested", { date: formatDate(appointment.requestedAt) })
+      });
+    } else if (urgency === "dentist" && onAppointment) {
+      action = el("button", { class: "button", type: "button", text: t("appointment.request") });
+      action.addEventListener("click", onAppointment);
+    }
+
+    return el("section", { class: `verdict verdict--${urgency}` }, [
+      el("p", { class: "verdict__source", text: t(`verdict.source.${source}`) }),
+      el("h2", { class: "verdict__title" }, [
+        el("span", { class: "verdict__icon", "aria-hidden": "true", text: VERDICT_ICONS[urgency] }),
+        t(`verdict.${urgency}.title`)
+      ]),
+      // After the dentist changes the result, the AI's description no longer matches it.
+      el("p", { text: changed ? t(`verdict.${urgency}.text`) : analysis.observation || t(`${base}.summary`) }),
+      !changed && el("p", { class: "verdict__next", text: t(`${base}.next`) }),
+      action
+    ]);
+  };
+
+  const analysisBlock = (analysis, { nextStep = true } = {}) => {
     const base = `profile.${analysis.profile}`;
 
     return el("section", { class: "card report-section" }, [
       el("div", { class: "report-section__title" }, [
         el("h2", { text: t("report.summary") }),
-        el("span", { class: "tag", text: t("report.simulated") })
+        el("span", { class: "tag", text: t(analysis.simulated ? "report.simulated" : "report.aiTag") })
       ]),
-      el("p", { text: t(`${base}.summary`) }),
+      el("p", { text: analysis.observation || t(`${base}.summary`) }),
       el("h3", { text: t("report.recommendations") }),
       el(
         "ul",
         { class: "bullet-list" },
         [1, 2, 3].map((n) => el("li", { text: t(`${base}.rec${n}`) }))
       ),
-      el("div", { class: `next-step next-step--${analysis.urgency}` }, [
-        el("h3", { text: t("report.nextStep") }),
-        urgencyChip(analysis.urgency),
-        el("p", { text: t(`${base}.next`) })
-      ])
+      nextStep &&
+        el("div", { class: `next-step next-step--${analysis.urgency}` }, [
+          el("h3", { text: t("report.nextStep") }),
+          urgencyChip(analysis.urgency),
+          el("p", { text: t(`${base}.next`) })
+        ])
     ]);
   };
 
@@ -154,6 +207,10 @@ window.Oraviu = window.Oraviu || {};
     if (!review) {
       children.push(el("p", { class: "muted", text: t("report.review.awaiting") }));
     } else {
+      if (review.verdict) {
+        children.push(el("h3", { text: t("report.review.verdict") }), el("p", {}, urgencyChip(review.verdict)));
+      }
+
       if (review.comment) {
         children.push(el("h3", { text: t("report.review.comment") }), el("p", { class: "prewrap", text: review.comment }));
       }
@@ -185,7 +242,10 @@ window.Oraviu = window.Oraviu || {};
     statusChip,
     urgencyChip,
     priorityChip,
+    appointmentChip,
+    finalUrgency,
     photoGrid,
+    verdictBlock,
     analysisBlock,
     reviewBlock,
     bindClearButton

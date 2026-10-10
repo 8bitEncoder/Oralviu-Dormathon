@@ -1,0 +1,15 @@
+{
+  "name": "oraviu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demo web system for oral photo screening with dentist review",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0"
+  }
+}
