@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: oraviu
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: PUBLIC
+        value: "1"
+      - key: HOST
+        value: "0.0.0.0"

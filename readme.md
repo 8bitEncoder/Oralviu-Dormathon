@@ -44,6 +44,18 @@ The server keeps one shared case list, so the patient's phone and the dentist's 
 
 Anyone who can reach the server can spend the API key's credit, so do this only on a network you trust.
 
+#### Host a public demo
+
+The server is a long-running process that keeps the shared cases in memory, so host it on a platform that runs a web service (Render, Railway, Fly.io, Glitch, Replit) rather than a serverless host. Vercel and Netlify run functions without shared memory, so the case list would not be shared there.
+
+The repo includes `render.yaml`, so on Render:
+
+1. Fork this repository (or push it to your own account).
+2. Open `https://render.com/deploy?repo=<your-fork-url>` and follow the prompts, or create a **Web Service** from the repo. The blueprint sets `PUBLIC=1` and `HOST=0.0.0.0` for you.
+3. Render builds with `npm install` and starts with `npm start`, then gives you a public `https://...onrender.com` URL.
+
+`PUBLIC=1` hands the access key to every visitor, which is what lets strangers share one case list. Leave `ANTHROPIC_API_KEY` unset for a free public demo, where screening is simulated; set it to screen real photos, but then anyone with the link can spend that key's credit. The free Render plan sleeps when idle and starts with an empty list, then reloads the demo cases on wake.
+
 The system was tested in Edge, which shares Chrome's engine. Other browsers have not been tested. The AI screening call was tested against a stand-in for the Claude API and has not yet been run with a real key.
 
 ## How it works
@@ -105,6 +117,7 @@ Oraviu/
 ├── styles.css      All styles
 ├── server.mjs      Optional local server: serves the pages and runs AI screening
 ├── package.json    The server's one dependency and the start script
+├── render.yaml     Blueprint for hosting the shared demo on Render
 ├── .env.example    Template for the API key file
 ├── readme.md
 ├── assets/
@@ -200,7 +213,7 @@ Before a photo is added, `qualityProblem` in `js/patient.js` measures its bright
 
 There are two modes, and `js/store.js` picks one when the page loads.
 
-- **Shared (server).** When a page is served by `server.mjs`, cases are kept in the server's memory and shared by every device using that server. The patient's phone and the dentist's computer see the same list, and each page refreshes it every two seconds. Cases are lost when the server stops.
+- **Shared (server).** When a page is served by `server.mjs`, cases are kept in the server's memory and shared by every device using that server. The patient's phone and the dentist's computer see the same list, and each page refreshes it every two seconds. The server starts with 10 realistic demo cases (histories, reviews, and drawn photos) so the dentist page is not empty; set `SEED=0` to start empty instead. Cases are lost when the server stops.
 - **Offline (browser).** When a page is opened from disk (`file://`), or no server can be reached, cases are kept in this browser's IndexedDB. Nothing is shared.
 
 With AI screening on, the photos are sent through the server to the Claude API to be screened. In shared mode they also live in the server's memory for the length of the session; the server does not write them to disk.
