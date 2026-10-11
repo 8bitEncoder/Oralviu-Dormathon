@@ -37,6 +37,7 @@
   const reviewMessage = document.querySelector("#review-message");
   const submitButton = document.querySelector("#review-submit");
   const storageError = document.querySelector("#storage-error");
+  const syncStatus = document.querySelector("#sync-status");
 
   const state = {
     view: "cases",
@@ -53,6 +54,17 @@
     saving: false
   };
   let renderToken = 0;
+  let syncMode = null;
+
+  const renderSync = () => {
+    if (!syncMode) {
+      return;
+    }
+
+    syncStatus.dataset.mode = syncMode;
+    syncStatus.textContent = t(syncMode === "shared" ? "sync.shared" : "sync.local");
+    syncStatus.hidden = false;
+  };
 
   const showView = (name) => {
     state.view = name;
@@ -244,6 +256,8 @@
   };
 
   const render = () => {
+    renderSync();
+
     if (state.view === "cases") {
       renderCases();
     } else {
@@ -328,6 +342,11 @@
   i18n.onChange(render);
   store.onChange(render);
   ui.bindClearButton(render);
+
+  store.ready().then((mode) => {
+    syncMode = mode;
+    renderSync();
+  });
 
   route();
 })();

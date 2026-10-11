@@ -15,7 +15,7 @@ There are two ways to run it. The banner at the top of each page says which one 
 1. Open `index.html` in Chrome.
 2. Choose **Patient**, **Dentist**, or **Device**, or open `patient.html`, `dentist.html`, and `device.html` directly.
 
-The result is one of five preset profiles. A **Simulated result** list on the patient page lets the presenter choose which one, so the result can match the photo being shown.
+The result is one of five preset profiles. A **Simulated result** list on the patient page lets the presenter choose which one, so the result can match the photo being shown. Cases created this way stay in that browser.
 
 ### AI screening (local server)
 
@@ -26,9 +26,20 @@ This needs Node.js 20.12 or later and a Claude API key. The API is billed separa
 3. Run `npm start`.
 4. Open `http://127.0.0.1:3000` in Chrome.
 
-The server prints whether AI screening is on. Without a key it still serves the pages, with simulated results. The server listens on this computer only; set `HOST=0.0.0.0` to reach it from a phone on the same network, and remember that anyone who can reach it spends the key's credit.
+The server prints whether AI screening is on. Without a key it still serves the pages, with simulated results.
 
-Open the patient and dentist pages in the same browser on the same computer and in the same way (both from disk or both from the server), because cases are stored in that browser (see [Data storage](#data-storage)).
+Run the server once and open both pages from it, or open both from disk. Cases are shared when the server is running and stay in the browser when opened from disk (see [Data storage](#data-storage)).
+
+#### Sharing cases between a phone and a computer
+
+The server keeps one shared case list, so the patient's phone and the dentist's computer see the same cases. The case and screening APIs only answer requests that carry an access key. A page opened on this computer is handed the key in its HTML; a page opened on a phone carries it in the `?k=` part of the link the server prints.
+
+1. On the computer, run `npm start` and open `http://localhost:3000/patient.html` or `.../dentist.html`. The server listens on every interface by default.
+2. On the phone (same Wi-Fi), open the full `http://<wifi-address>:3000/patient.html?k=...` link the server prints. Use the address shown for **Wi-Fi**, not for vEthernet, Ethernet, or VirtualBox, and never `localhost` on the phone.
+3. If the phone cannot connect, allow Node.js through Windows Firewall (Private networks). On a network that isolates devices (many dorm and guest Wi-Fi networks do), the phone and computer cannot reach each other — use a phone hotspot or a home router instead.
+4. To keep the server on this computer only, set `HOST=127.0.0.1`. In Windows PowerShell that is `$env:HOST='127.0.0.1'; npm start`.
+
+Anyone who can reach the server can spend the API key's credit, so do this only on a network you trust.
 
 The system was tested in Edge, which shares Chrome's engine. Other browsers have not been tested. The AI screening call was tested against a stand-in for the Claude API and has not yet been run with a real key.
 
@@ -36,7 +47,7 @@ The system was tested in Edge, which shares Chrome's engine. Other browsers have
 
 ### Patient page (`patient.html`)
 
-1. **Upload** up to 5 photos by drag-and-drop or the file picker. A guide lists the five views to take. Files that are not images, and photos that are too dark or too blurry to judge, are left out with a message.
+1. **Upload** up to 5 photos by drag-and-drop, the file picker, or the **Open phone camera** button (which opens the phone's rear camera). A guide lists the five views to take. Files that are not images, and photos that are too dark or too blurry to judge, are left out with a message.
 2. **Analyze** screens the photos and creates a case numbered `ORV-0001`, `ORV-0002`, and so on. No personal details are collected. With AI screening, photos that do not show teeth or gums are sent back for a retake and no case is created.
 3. **Report** opens with the result: *Nothing visible to worry about*, *Keep an eye on this*, or *Please see a dentist*, each with its own colour and icon, a one-line reason, and the next step. The dentist's review, the photos, and the recommendations follow.
 4. **Request an appointment** appears when the result is *Please see a dentist*. The request is saved on the case and shown to the dentist.
@@ -78,7 +89,7 @@ All pages switch between English, 中文, and Bahasa Melayu from the header. The
 - Vanilla JavaScript
 - three.js r180 for the 3D model, kept in the project as one prebuilt file
 - No frameworks or build tools in the pages
-- Optional local server: Node.js with the official Anthropic SDK (`@anthropic-ai/sdk`), used only for AI screening
+- Optional local server: Node.js with the official Anthropic SDK (`@anthropic-ai/sdk`), used for AI screening and for sharing cases between the patient's phone and the dentist's computer
 
 ## Project structure
 
@@ -98,7 +109,7 @@ Oraviu/
 │   └── reference-blueprint.png       Drawing shown by the Blueprint button
 └── js/
     ├── i18n.js         Text in three languages and the language switcher
-    ├── store.js        Case storage (IndexedDB) and cross-page change signal
+    ├── store.js        Case storage: the shared server store, or IndexedDB offline
     ├── analysis.js     Screening: calls the server, or simulates a result without it
     ├── ui.js           Shared rendering: chips, photo grid, lightbox, report blocks
     ├── patient.js      Patient page logic
@@ -167,18 +178,39 @@ To use a different model or service, change `screenPhotos` in `server.mjs` and k
 
 Before a photo is added, `qualityProblem` in `js/patient.js` measures its brightness and its edge sharpness in the browser. The limits (`MIN_BRIGHTNESS`, `MIN_SHARPNESS`) are loose on purpose and were set on synthetic test images, not on real mouth photos, so tune them once real photos from the camera are available.
 
+## Server API
+
+`server.mjs` serves the pages and these routes. Every route except `/api/status` needs the access key, sent as the `x-oraviu-key` header or a `?k=` query value; the pages get it from the served HTML.
+
+| Route                            | Method | Purpose                                       |
+| -------------------------------- | ------ | --------------------------------------------- |
+| `/api/status`                    | GET    | `{ ai, store }` — is a key set, is the store on |
+| `/api/analyze`                   | POST   | Screen photos (unchanged contract)            |
+| `/api/cases`                     | GET    | `{ cases, version }` — the shared list        |
+| `/api/cases`                     | POST   | Create a case from `{ photos, analysis }`     |
+| `/api/case/ORV-0001`             | GET    | One case with its photos                      |
+| `/api/case/ORV-0001/review`      | POST   | Save a review                                 |
+| `/api/case/ORV-0001/appointment` | POST   | Flag an appointment request                   |
+| `/api/cases/clear`               | POST   | Delete every shared case                      |
+
 ## Data storage
 
-Cases are stored in the browser only. With AI screening on, the photos are also sent through the local server to the Claude API to be screened; the server keeps no copy.
+There are two modes, and `js/store.js` picks one when the page loads.
 
-| Where        | Name                | Contents                                                 |
-| ------------ | ------------------- | -------------------------------------------------------- |
-| IndexedDB    | `oraviu` → `cases`  | One record per case, without photos                      |
-| IndexedDB    | `oraviu` → `photos` | The photos for each case                                 |
-| localStorage | `oraviu:lang`       | Chosen language                                          |
-| localStorage | `oraviu:changed`    | Timestamp written on every change to wake the other page |
+- **Shared (server).** When a page is served by `server.mjs`, cases are kept in the server's memory and shared by every device using that server. The patient's phone and the dentist's computer see the same list, and each page refreshes it every two seconds. Cases are lost when the server stops.
+- **Offline (browser).** When a page is opened from disk (`file://`), or no server can be reached, cases are kept in this browser's IndexedDB. Nothing is shared.
 
-A case record looks like this:
+With AI screening on, the photos are sent through the server to the Claude API to be screened. In shared mode they also live in the server's memory for the length of the session; the server does not write them to disk.
+
+| Where         | Name                | Contents                                                    |
+| ------------- | ------------------- | ----------------------------------------------------------- |
+| Server memory | `cases` / `photos`  | Shared mode: every case while the server runs               |
+| IndexedDB     | `oraviu` → `cases`  | Offline: one record per case, without photos                |
+| IndexedDB     | `oraviu` → `photos` | Offline: the photos for each case                           |
+| localStorage  | `oraviu:lang`       | Chosen language                                             |
+| localStorage  | `oraviu:changed`    | Offline: timestamp written on every change to wake the other page |
+
+The same case record shape is used in both modes:
 
 ```js
 {
@@ -195,7 +227,7 @@ A case record looks like this:
 
 Photos are resized in the browser to at most 1280 px on the longest side and saved as JPEG before storage.
 
-**Clear demo data** in the footer of either page deletes every case in the browser, and numbering restarts at `ORV-0001`.
+**Clear demo data** in the footer deletes every case in the current mode — the shared cases on the server, or this browser's offline copy — and numbering restarts at `ORV-0001`.
 
 ## Adding or changing text
 
@@ -211,8 +243,8 @@ All interface text is in the `messages` object in `js/i18n.js`, once per languag
 - Photos show surfaces only. Decay between teeth and anything under the gums cannot be seen, so a clear result never means the mouth is healthy.
 - The photo-opening lock shows that the dentist opened each photo, not that they studied it. There is no second review or audit of decisions.
 - An appointment request is only a flag on the case. There is no calendar, and nobody is notified.
-- There is no login. Anyone who opens `dentist.html` can review cases, and the patient page shows every report stored in the browser.
-- Cases exist only in one browser on one computer. Clearing the browser's site data deletes them.
+- There is no login. The access key in a served page keeps other devices out of the case list, but anyone given a working link can review cases, and the patient page shows every case.
+- Without the server, cases exist only in one browser on one computer, and clearing the browser's site data deletes them. With the server they are shared, but they are held in memory and lost when it stops.
 - Dentists choose a decision and can add a comment and a recommendation. They cannot mark up photos or accept and reject individual findings.
-- Photos come from file upload only. The five-view guide is a list, not a step-by-step capture. Camera capture and a connection to the intraoral device are not included.
+- Photos come from the file picker or the phone camera; on a phone the camera button opens the rear camera. The five-view guide is a list, not a step-by-step capture, and there is still no connection to the intraoral device.
 - The 3D model is a concept. Its dimensions are illustrative, and the chips, PCB layout, and connectors are proposals that the pitch deck does not specify.

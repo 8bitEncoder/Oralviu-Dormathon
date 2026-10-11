@@ -18,7 +18,8 @@
 
   <main class="site-main">
     <div class="container">
-      <p id="storage-error" class="form-message form-message--error" role="alert" data-i18n="error.storage" hidden>This browser is blocking local storage, so cases cannot be saved or loaded.</p>
+      <p id="storage-error" class="form-message form-message--error" role="alert" data-i18n="error.storage" hidden>Cases could not be saved or loaded. Check the connection, or this browser's storage settings.</p>
+      <p id="sync-status" class="sync-status" role="status" hidden></p>
 
       <nav class="tabs" aria-label="Patient sections" data-i18n-aria-label="patient.tabs.label">
         <a class="tabs__link" href="#new" data-tab="new" data-i18n="patient.tab.new">New analysis</a>
@@ -44,10 +45,16 @@
           <div id="dropzone" class="dropzone">
             <p class="dropzone__title" data-i18n="patient.drop.title">Drag photos here</p>
             <p class="dropzone__hint" data-i18n="patient.drop.hint">JPG, PNG or WebP. Up to 5 photos.</p>
-            <label class="button button--secondary">
-              <span data-i18n="patient.drop.button">Choose photos</span>
-              <input id="photo-input" class="visually-hidden" type="file" accept="image/*" multiple>
-            </label>
+            <div class="dropzone__actions">
+              <label class="button">
+                <span data-i18n="patient.capture.button">Open phone camera</span>
+                <input id="camera-input" class="visually-hidden" type="file" accept="image/*" capture="environment">
+              </label>
+              <label class="button button--secondary">
+                <span data-i18n="patient.drop.button">Choose photos</span>
+                <input id="photo-input" class="visually-hidden" type="file" accept="image/*" multiple>
+              </label>
+            </div>
           </div>
           <div id="upload-messages" class="form-messages" role="alert"></div>
           <ul id="photo-list" class="photo-grid"></ul>
@@ -83,7 +90,7 @@
       <section id="view-reports" aria-labelledby="reports-heading" hidden>
         <header class="page-intro">
           <h1 id="reports-heading" data-i18n="patient.reports.heading">My reports</h1>
-          <p data-i18n="patient.reports.intro">Reports created in this browser.</p>
+          <p data-i18n="patient.reports.intro">Your submitted reports.</p>
         </header>
         <ul id="report-list" class="case-list"></ul>
         <div id="report-empty" class="empty-state" hidden>
@@ -100,7 +107,7 @@
 
   <footer class="site-footer">
     <div class="container site-footer__inner">
-      <p data-i18n="footer.note">Oraviu demo. Cases are stored only in this browser.</p>
+      <p data-i18n="footer.note">Oraviu demo. With the server running, cases are shared with the clinic; otherwise they stay in this browser.</p>
       <button id="clear-data" class="site-footer__clear" type="button" data-i18n="footer.clear">Clear demo data</button>
     </div>
   </footer>

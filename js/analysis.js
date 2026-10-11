@@ -2,6 +2,8 @@ window.Oraviu = window.Oraviu || {};
 
 (() => {
   const { t } = window.Oraviu.i18n;
+  // The screening endpoint sits behind the same access key as the shared cases.
+  const accessKey = window.__ORAVIU_KEY__ || new URLSearchParams(location.search).get("k") || "";
 
   const PROFILES = [
     { key: "clear", urgency: "routine" },
@@ -51,7 +53,7 @@ window.Oraviu = window.Oraviu || {};
   const screen = async (photos, lang) => {
     const response = await fetch("api/analyze", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-oraviu-key": accessKey },
       body: JSON.stringify({ photos: photos.map(({ dataUrl }) => dataUrl), lang })
     });
 

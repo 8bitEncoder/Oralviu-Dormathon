@@ -11,5 +11,18 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0"
-  }
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crazylim01/Oralviu-Dormathon.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/crazylim01/Oralviu-Dormathon/issues"
+  },
+  "homepage": "https://github.com/crazylim01/Oralviu-Dormathon#readme"
 }

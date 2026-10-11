@@ -18,12 +18,13 @@
 
   <main class="site-main">
     <div class="container">
-      <p id="storage-error" class="form-message form-message--error" role="alert" data-i18n="error.storage" hidden>This browser is blocking local storage, so cases cannot be saved or loaded.</p>
+      <p id="storage-error" class="form-message form-message--error" role="alert" data-i18n="error.storage" hidden>Cases could not be saved or loaded. Check the connection, or this browser's storage settings.</p>
+      <p id="sync-status" class="sync-status" role="status" hidden></p>
 
       <section id="view-cases" aria-labelledby="cases-heading">
         <header class="page-intro">
           <h1 id="cases-heading" data-i18n="dentist.cases.heading">Case review</h1>
-          <p data-i18n="dentist.cases.intro">Reports submitted from the patient page in this browser appear here.</p>
+          <p data-i18n="dentist.cases.intro">Reports submitted from a patient page appear here.</p>
           <p id="inbox-summary" class="inbox-summary" aria-live="polite" hidden></p>
         </header>
         <div class="toolbar">
@@ -90,7 +91,7 @@
 
   <footer class="site-footer">
     <div class="container site-footer__inner">
-      <p data-i18n="footer.note">Oraviu demo. Cases are stored only in this browser.</p>
+      <p data-i18n="footer.note">Oraviu demo. With the server running, cases are shared with the clinic; otherwise they stay in this browser.</p>
       <button id="clear-data" class="site-footer__clear" type="button" data-i18n="footer.clear">Clear demo data</button>
     </div>
   </footer>

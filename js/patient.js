@@ -22,6 +22,8 @@
   const tabLinks = Array.from(tabs.querySelectorAll(".tabs__link"));
   const dropzone = document.querySelector("#dropzone");
   const photoInput = document.querySelector("#photo-input");
+  const cameraInput = document.querySelector("#camera-input");
+  const syncStatus = document.querySelector("#sync-status");
   const photoList = document.querySelector("#photo-list");
   const photoCount = document.querySelector("#photo-count");
   const uploadMessages = document.querySelector("#upload-messages");
@@ -36,6 +38,7 @@
 
   const state = { view: "new", reportId: null, photos: [], messages: [], analyzing: false };
   let renderToken = 0;
+  let syncMode = null;
 
   const showView = (name) => {
     const activeTab = name === "reports" || name === "report" ? "reports" : "new";
@@ -174,6 +177,8 @@
     analyzeButton.disabled = total === 0;
     photoInput.disabled = isFull;
     photoInput.parentElement.classList.toggle("is-disabled", isFull);
+    cameraInput.disabled = isFull;
+    cameraInput.parentElement.classList.toggle("is-disabled", isFull);
   };
 
   const addFiles = async (files) => {
@@ -365,7 +370,19 @@
     );
   };
 
+  const renderSync = () => {
+    if (!syncMode) {
+      return;
+    }
+
+    syncStatus.dataset.mode = syncMode;
+    syncStatus.textContent = t(syncMode === "shared" ? "sync.shared" : "sync.local");
+    syncStatus.hidden = false;
+  };
+
   const render = () => {
+    renderSync();
+
     if (state.view === "new") {
       renderUpload();
     } else if (state.view === "reports") {
@@ -400,6 +417,11 @@
     photoInput.value = "";
   });
 
+  cameraInput.addEventListener("change", () => {
+    addFiles(cameraInput.files);
+    cameraInput.value = "";
+  });
+
   ["dragenter", "dragover"].forEach((type) => {
     dropzone.addEventListener(type, (event) => {
       event.preventDefault();
@@ -430,6 +452,11 @@
   i18n.onChange(render);
   store.onChange(render);
   ui.bindClearButton(render);
+
+  store.ready().then((mode) => {
+    syncMode = mode;
+    renderSync();
+  });
 
   route();
 })();
