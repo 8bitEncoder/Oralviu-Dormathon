@@ -1,6 +1,9 @@
-# Oraviu
+To access the the material and slides please click this link : https://drive.google.com/file/d/1n8_68aAWGBEl4LHta5m6plQUpIdLHiWZ/view?usp=drivesdk
 
-Oraviu is a prototype web system for oral photo screening with dentist review. A patient uploads photos of their teeth and gums and gets one clear result with a next step; a dentist then confirms or changes that result, and the patient's report updates.
+
+# Oralviu 
+
+Oralviu is a prototype web system for oral photo screening with dentist review. A patient uploads photos of their teeth and gums and gets one clear result with a next step; a dentist then confirms or changes that result, and the patient's report updates.
 
 The visual style follows the SmileGuardian website, and the system covers the **Analyze**, **Review**, and **Act** steps of its Capture → Connect → Analyze → Review → Act journey. A third page shows the intraoral camera itself as an interactive 3D model.
 
